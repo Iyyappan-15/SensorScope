@@ -155,14 +155,14 @@ def render() -> None:
             x=0.5, y=0.95, xref="paper", yref="paper",
             text="🔴 Calibration unavailable — insufficient evidence. Raw data shown.",
             showarrow=False, font=dict(color="#f44336", size=12),
-            bgcolor="#1a0000", bordercolor="#f44336",
+            bgcolor="rgba(244, 67, 54, 0.15)", bordercolor="#f44336",
         )
     elif best_status == "yellow" and show_calibrated and has_calibrated:
         fig.add_annotation(
             x=0.5, y=0.95, xref="paper", yref="paper",
             text="🟡 Calibration shown with caution — limited evidence.",
             showarrow=False, font=dict(color="#ff9800", size=12),
-            bgcolor="#1a1000", bordercolor="#ff9800",
+            bgcolor="rgba(255, 152, 0, 0.15)", bordercolor="#ff9800",
         )
 
     fig.update_layout(
@@ -171,7 +171,8 @@ def render() -> None:
         xaxis_title="Month",
         yaxis_title=y_label,
         legend=dict(orientation="h", y=-0.15),
-        plot_bgcolor="#0e1117", paper_bgcolor="#0e1117", font_color="#fafafa",
+        plot_bgcolor="rgba(0,0,0,0)",
+        paper_bgcolor="rgba(0,0,0,0)",
     )
     st.plotly_chart(fig, use_container_width=True)
 
@@ -224,7 +225,7 @@ def render() -> None:
             fig2.add_hline(y=0, line_color="grey", line_width=0.5)
             fig2.update_layout(
                 height=280, yaxis_title="Z-score",
-                plot_bgcolor="#0e1117", paper_bgcolor="#0e1117", font_color="#fafafa",
+                plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
                 margin=dict(l=0, r=0, t=20, b=0),
             )
             st.plotly_chart(fig2, use_container_width=True)
@@ -260,7 +261,7 @@ def render() -> None:
         )
         fig3.update_layout(
             height=280,
-            plot_bgcolor="#0e1117", paper_bgcolor="#0e1117", font_color="#fafafa",
+            plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
         )
         st.plotly_chart(fig3, use_container_width=True)
         st.caption(

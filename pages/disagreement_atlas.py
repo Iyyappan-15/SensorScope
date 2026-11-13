@@ -56,43 +56,120 @@ def render() -> None:
 
     with left:
         st.subheader("🗺️ Spatial disagreement (Δ detection count)")
+        
+        c_map1, c_map2 = st.columns([1.3, 1])
+        with c_map1:
+            basemap_choice = st.selectbox(
+                "Map View / Basemap",
+                options=["🛰️ Satellite (ESRI)", "☀️ Light (OSM)", "🗺️ Positron (Light)", "🌑 Dark Matter"],
+                index=0,
+                help="Choose background basemap: real satellite imagery, bright OpenStreetMap, Positron, or Dark Matter.",
+                key="atlas_basemap",
+            )
+        with c_map2:
+            min_days = st.slider(
+                "Min Active Days per Cell",
+                min_value=1,
+                max_value=15,
+                value=1,
+                help="Filter out cells with very few active fire days to reduce clutter.",
+            )
+
         map_data = disagree.groupby(["grid_lat", "grid_lon"]).agg(
             mean_d_count=("d_count", "mean"),
             n_days=("d_count", "count"),
         ).reset_index()
 
+        if min_days > 1:
+            map_data = map_data[map_data["n_days"] >= min_days]
+
+        # Basemap configuration
+        esri_layer = {
+            "below": "traces",
+            "sourcetype": "raster",
+            "source": ["https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"],
+        }
+
+        if "Satellite" in basemap_choice:
+            map_style = "white-bg"
+            map_layers = [esri_layer]
+        elif "OSM" in basemap_choice:
+            map_style = "open-street-map"
+            map_layers = []
+        elif "Positron" in basemap_choice:
+            map_style = "carto-positron"
+            map_layers = []
+        else:
+            map_style = "carto-darkmatter"
+            map_layers = []
+
         scatter_fn = getattr(px, "scatter_map", None) or px.scatter_mapbox
-        style_kw = {"map_style": "carto-darkmatter"} if hasattr(px, "scatter_map") else {"mapbox_style": "carto-darkmatter"}
+        style_kw = {"map_style": map_style} if hasattr(px, "scatter_map") else {"mapbox_style": map_style}
+
+        target_center = dict(lat=30.8, lon=76.0)
 
         fig = scatter_fn(
             map_data,
             lat="grid_lat", lon="grid_lon",
             color="mean_d_count",
             size="n_days",
+            size_max=8,
             color_continuous_scale="RdBu",
             color_continuous_midpoint=0,
             range_color=[-5, 5],
-            center=dict(lat=30.8, lon=76.0),
-            zoom=6.5, opacity=0.8,
-            hover_data={"mean_d_count": ":.2f", "n_days": True},
+            center=target_center,
+            zoom=6.6,
+            opacity=0.75,
+            custom_data=["mean_d_count", "n_days"],
             labels={"mean_d_count": "Mean Δ count (VIIRS−MODIS)", "n_days": "Active days"},
             **style_kw,
         )
-        target_center = dict(lat=30.8, lon=76.0)
+        fig.update_traces(
+            hovertemplate=(
+                "<b>0.1° Grid Cell</b><br>"
+                "<b>Coordinates:</b> %{lat:.2f}°N, %{lon:.2f}°E<br>"
+                "<b>Mean Δ count (VIIRS−MODIS):</b> %{customdata[0]:+.2f}<br>"
+                "<b>Active Days:</b> %{customdata[1]}<extra></extra>"
+            ),
+            marker=dict(line=dict(width=0.8, color="#ffffff")),
+        )
+
+        layout_dict = dict(
+            center=target_center,
+            zoom=6.6,
+            style=map_style,
+            layers=map_layers,
+        )
         if hasattr(px, "scatter_map"):
             fig.update_layout(
-                map=dict(center=target_center, zoom=6.5, style="carto-darkmatter"),
-                height=430, margin=dict(l=0, r=0, t=10, b=0),
-                uirevision="sensorscope_atlas_punjab_fixed",
+                map=layout_dict,
+                height=480, margin=dict(l=0, r=0, t=10, b=0),
+                uirevision=f"sensorscope_atlas_{basemap_choice}",
+                coloraxis_colorbar=dict(
+                    title="Mean Δ count",
+                    orientation="h",
+                    y=-0.18,
+                    x=0.5,
+                    xanchor="center",
+                    len=0.85,
+                ),
             )
         else:
             fig.update_layout(
-                mapbox=dict(center=target_center, zoom=6.5, style="carto-darkmatter"),
-                height=430, margin=dict(l=0, r=0, t=10, b=0),
-                uirevision="sensorscope_atlas_punjab_fixed",
+                mapbox=layout_dict,
+                height=480, margin=dict(l=0, r=0, t=10, b=0),
+                uirevision=f"sensorscope_atlas_{basemap_choice}",
+                coloraxis_colorbar=dict(
+                    title="Mean Δ count",
+                    orientation="h",
+                    y=-0.18,
+                    x=0.5,
+                    xanchor="center",
+                    len=0.85,
+                ),
             )
         st.plotly_chart(fig, use_container_width=True)
-        st.caption("Blue = VIIRS sees more | Red = MODIS sees more | White = agreement")
+        st.caption("🔵 Blue = VIIRS detects more | 🔴 Red = MODIS detects more | ⚪ White = balanced")
 
     with right:
         st.subheader("📊 Disagreement by Day / Night")
@@ -108,9 +185,9 @@ def render() -> None:
                 title="Mean (VIIRS − MODIS) detection count",
                 yaxis_title="Mean Δ count",
                 xaxis=dict(tickvals=["D", "N"], ticktext=["☀️ Day", "🌙 Night"]),
-                height=200,
+                height=220,
                 margin=dict(l=0, r=0, t=40, b=0),
-                plot_bgcolor="#0e1117", paper_bgcolor="#0e1117", font_color="#fafafa",
+                plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
             )
             st.plotly_chart(fig2, use_container_width=True)
 
@@ -131,9 +208,9 @@ def render() -> None:
                 title="Mean disagreement by season",
             )
             fig3.update_layout(
-                height=200, showlegend=False,
+                height=220, showlegend=False,
                 margin=dict(l=0, r=0, t=40, b=0),
-                plot_bgcolor="#0e1117", paper_bgcolor="#0e1117", font_color="#fafafa",
+                plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
             )
             st.plotly_chart(fig3, use_container_width=True)
 
@@ -154,7 +231,8 @@ def render() -> None:
         )
         fig4.update_layout(
             height=320,
-            plot_bgcolor="#0e1117", paper_bgcolor="#0e1117", font_color="#fafafa",
+            plot_bgcolor="rgba(0,0,0,0)",
+            paper_bgcolor="rgba(0,0,0,0)",
         )
         st.plotly_chart(fig4, use_container_width=True)
         st.caption(
@@ -181,7 +259,8 @@ def render() -> None:
         )
         fig5.update_layout(
             height=300,
-            plot_bgcolor="#0e1117", paper_bgcolor="#0e1117", font_color="#fafafa",
+            plot_bgcolor="rgba(0,0,0,0)",
+            paper_bgcolor="rgba(0,0,0,0)",
         )
         st.plotly_chart(fig5, use_container_width=True)
         st.caption(

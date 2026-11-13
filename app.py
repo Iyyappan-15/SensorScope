@@ -29,16 +29,42 @@ st.markdown("""
 .badge-red    { background:#8b1a1a; color:#fff; padding:4px 10px;
                 border-radius:12px; font-weight:600; font-size:0.85rem; }
 
-/* Data-source banner */
+/* Data-source banner - theme-safe high contrast */
 .synthetic-banner {
-    background:#3a2800; border-left:4px solid #f0a500;
-    padding:8px 14px; border-radius:4px;
-    font-size:0.82rem; color:#f0a500; margin-bottom:12px;
+    background: rgba(230, 81, 0, 0.12); border: 1px solid rgba(230, 81, 0, 0.35);
+    border-left: 5px solid #e65100; padding: 10px 14px; border-radius: 6px;
+    font-size: 0.88rem; color: inherit; margin-bottom: 12px;
 }
 .real-banner {
-    background:#1a3a1a; border-left:4px solid #4caf50;
-    padding:8px 14px; border-radius:4px;
-    font-size:0.82rem; color:#4caf50; margin-bottom:12px;
+    background: rgba(46, 125, 50, 0.12); border: 1px solid rgba(46, 125, 50, 0.35);
+    border-left: 5px solid #2e7d32; padding: 10px 14px; border-radius: 6px;
+    font-size: 0.88rem; color: inherit; margin-bottom: 12px;
+}
+
+/* Theme-adaptive Reliability Gate Cards */
+.gate-card-green {
+    background: rgba(46, 125, 50, 0.10);
+    border: 1px solid rgba(46, 125, 50, 0.30);
+    border-left: 5px solid #2e7d32;
+    padding: 14px 16px;
+    border-radius: 8px;
+    margin-bottom: 10px;
+}
+.gate-card-yellow {
+    background: rgba(230, 81, 0, 0.10);
+    border: 1px solid rgba(230, 81, 0, 0.30);
+    border-left: 5px solid #e65100;
+    padding: 14px 16px;
+    border-radius: 8px;
+    margin-bottom: 10px;
+}
+.gate-card-red {
+    background: rgba(198, 40, 40, 0.10);
+    border: 1px solid rgba(198, 40, 40, 0.30);
+    border-left: 5px solid #c62828;
+    padding: 14px 16px;
+    border-radius: 8px;
+    margin-bottom: 10px;
 }
 </style>
 """, unsafe_allow_html=True)

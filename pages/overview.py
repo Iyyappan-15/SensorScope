@@ -60,9 +60,17 @@ def render() -> None:
     combined = data["combined"]
     if not combined.empty:
         # Interactive Control Bar right above the map
-        ctrl1, ctrl2, ctrl3, ctrl4 = st.columns([1.2, 1.2, 1, 1])
+        ctrl1, ctrl2, ctrl3, ctrl4, ctrl5 = st.columns([1.1, 1.0, 1.1, 0.9, 0.9])
 
         with ctrl1:
+            basemap_choice = st.selectbox(
+                "Map View / Basemap",
+                options=["🛰️ Satellite (ESRI)", "☀️ Light (OSM)", "🗺️ Positron (Light)", "🌑 Dark Matter"],
+                index=0,
+                help="Toggle between high-resolution ESRI satellite imagery, OpenStreetMap light, Positron, or Dark Matter.",
+            )
+
+        with ctrl2:
             sensor_selection = st.multiselect(
                 "Sensors Visible",
                 options=["MODIS", "VIIRS"],
@@ -70,7 +78,7 @@ def render() -> None:
                 help="Toggle visibility of individual sensor detection layers.",
             )
 
-        with ctrl2:
+        with ctrl3:
             period_selection = st.selectbox(
                 "Observation Window",
                 options=["Strict Kharif Peak (Nov 1–10)", "All Pilot Records (2022–2023)"],
@@ -78,7 +86,7 @@ def render() -> None:
                 help="Strict Kharif Peak filters to the audited Nov 1–10 calibration window.",
             )
 
-        with ctrl3:
+        with ctrl4:
             daynight_selection = st.selectbox(
                 "Day / Night Pass",
                 options=["All Passes", "Day only (☀️ D)", "Night only (🌙 N)"],
@@ -86,7 +94,7 @@ def render() -> None:
                 help="Filter by solar illumination at time of satellite overpass.",
             )
 
-        with ctrl4:
+        with ctrl5:
             show_grid_overlay = st.checkbox(
                 "Show 0.1° Grid Overlay",
                 value=False,
@@ -137,8 +145,28 @@ def render() -> None:
             "<b>Coordinates:</b> " + sample["latitude"].round(3).astype(str) + "°N, " + sample["longitude"].round(3).astype(str) + "°E"
         )
 
+        # Basemap configuration
+        esri_layer = {
+            "below": "traces",
+            "sourcetype": "raster",
+            "source": ["https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"],
+        }
+
+        if "Satellite" in basemap_choice:
+            map_style = "white-bg"
+            map_layers = [esri_layer]
+        elif "OSM" in basemap_choice:
+            map_style = "open-street-map"
+            map_layers = []
+        elif "Positron" in basemap_choice:
+            map_style = "carto-positron"
+            map_layers = []
+        else:
+            map_style = "carto-darkmatter"
+            map_layers = []
+
         scatter_fn = getattr(px, "scatter_map", None) or px.scatter_mapbox
-        map_kw = {"map_style": "carto-darkmatter"} if hasattr(px, "scatter_map") else {"mapbox_style": "carto-darkmatter"}
+        map_kw = {"map_style": map_style} if hasattr(px, "scatter_map") else {"mapbox_style": map_style}
 
         target_center = dict(lat=30.8, lon=76.0)
         target_zoom = 6.8
@@ -151,7 +179,7 @@ def render() -> None:
             color_discrete_map={"MODIS": "#FF6B35", "VIIRS": "#1E90FF"},
             center=target_center,
             zoom=target_zoom,
-            opacity=0.75,
+            opacity=0.8,
             hover_name="sensor",
             custom_data=["sensor", "acq_date", "acq_time", "frp_mw", "confidence_raw", "daynight"],
             **map_kw,
@@ -163,7 +191,7 @@ def render() -> None:
             "<b>FRP:</b> %{customdata[3]:.1f} MW<br>"
             "<b>Confidence:</b> %{customdata[4]}<br>"
             "<b>Pass:</b> %{customdata[5]}<extra></extra>",
-            marker=dict(size=5.5),
+            marker=dict(size=5.5, line=dict(width=0.5, color="#ffffff")),
         )
 
         # Optional 0.1° grid boundary overlay
@@ -177,31 +205,33 @@ def render() -> None:
                     lat=lats,
                     lon=lons,
                     mode="lines",
-                    line=dict(color="#fbc02d", width=2, dash="dash"),
+                    line=dict(color="#fbc02d", width=2.5, dash="dash"),
                     name="0.1° Grid AOI Bounding Box",
                     hoverinfo="text",
                     text="Punjab & Haryana Study AOI Boundary [29.5°–32.5°N, 73.8°–77.5°E]",
                 )
             )
 
-        # Explicit layout configuration with fixed center, desktop height ~550px, and cache override
+        # Explicit layout configuration with fixed center, desktop height ~560px, and dynamic basemap
         layout_dict = dict(
             center=target_center,
             zoom=target_zoom,
-            style="carto-darkmatter",
+            style=map_style,
+            layers=map_layers,
         )
         if hasattr(px, "scatter_map"):
             fig_map.update_layout(
                 map=layout_dict,
                 height=560,
                 margin=dict(l=0, r=0, t=30, b=0),
-                uirevision="sensorscope_explorer_punjab_v4",
+                uirevision=f"sensorscope_explorer_{basemap_choice}",
                 legend=dict(
                     orientation="h",
                     y=1.03,
                     x=0.0,
-                    bgcolor="rgba(14, 17, 23, 0.8)",
-                    bordercolor="#333",
+                    bgcolor="rgba(0, 0, 0, 0.4)",
+                    font=dict(color="#ffffff"),
+                    bordercolor="#444",
                     borderwidth=1,
                 ),
             )
@@ -210,13 +240,14 @@ def render() -> None:
                 mapbox=layout_dict,
                 height=560,
                 margin=dict(l=0, r=0, t=30, b=0),
-                uirevision="sensorscope_explorer_punjab_v4",
+                uirevision=f"sensorscope_explorer_{basemap_choice}",
                 legend=dict(
                     orientation="h",
                     y=1.03,
                     x=0.0,
-                    bgcolor="rgba(14, 17, 23, 0.8)",
-                    bordercolor="#333",
+                    bgcolor="rgba(0, 0, 0, 0.4)",
+                    font=dict(color="#ffffff"),
+                    bordercolor="#444",
                     borderwidth=1,
                 ),
             )
@@ -278,8 +309,8 @@ def render() -> None:
                 yaxis_title="Reported Grid-Cell Detections",
                 legend=dict(orientation="h", y=1.05, x=0.0),
                 margin=dict(l=0, r=0, t=25, b=0),
-                plot_bgcolor="#0e1117", paper_bgcolor="#0e1117",
-                font_color="#fafafa",
+                plot_bgcolor="rgba(0,0,0,0)",
+                paper_bgcolor="rgba(0,0,0,0)",
             )
             st.plotly_chart(fig_monthly, use_container_width=True)
             st.caption(
@@ -321,8 +352,8 @@ def render() -> None:
                 xaxis_title="Grid-Cell Observations",
                 yaxis=dict(autorange="reversed"),
                 margin=dict(l=0, r=0, t=25, b=0),
-                plot_bgcolor="#0e1117", paper_bgcolor="#0e1117",
-                font_color="#fafafa",
+                plot_bgcolor="rgba(0,0,0,0)",
+                paper_bgcolor="rgba(0,0,0,0)",
             )
             st.plotly_chart(fig_dis, use_container_width=True)
             st.caption(
@@ -338,13 +369,13 @@ def render() -> None:
     st.markdown("## 🔒 Calibration Reliability")
     st.caption("Evidence-based decision gate determining when calibrated estimates are scientifically justified.")
 
-    # Executive gate status cards
+    # Executive gate status cards - Theme-adaptive high contrast
     gc1, gc2, gc3 = st.columns(3)
     with gc1:
         st.markdown(
-            '<div style="background:#1b3a24; border-left:4px solid #4caf50; padding:12px 16px; border-radius:6px;">'
-            '<strong style="color:#4caf50; font-size:1.0rem;">🟢 Reliable (Pilot Model)</strong><br>'
-            '<span style="font-size:0.85rem; color:#cfd8dc;">'
+            '<div class="gate-card-green">'
+            '<strong style="color:#2e7d32; font-size:1.0rem;">🟢 Reliable (Pilot Model)</strong><br>'
+            '<span style="font-size:0.88rem; color:inherit; line-height:1.45; display:inline-block; margin-top:4px;">'
             '<strong>Model C (Context OLS)</strong> is fully supported across Punjab & Haryana. '
             'N = 2,554 co-active pairs (1,312 train / 1,242 eval), held-out MAE = 26.19 MW, bias = +8.1% (≤ ±15% threshold).'
             '</span></div>',
@@ -352,9 +383,9 @@ def render() -> None:
         )
     with gc2:
         st.markdown(
-            '<div style="background:#3a3014; border-left:4px solid #ff9800; padding:12px 16px; border-radius:6px;">'
-            '<strong style="color:#ff9800; font-size:1.0rem;">🟡 Caution (Subgroup Alert)</strong><br>'
-            '<span style="font-size:0.85rem; color:#cfd8dc;">'
+            '<div class="gate-card-yellow">'
+            '<strong style="color:#e65100; font-size:1.0rem;">🟡 Caution (Subgroup Alert)</strong><br>'
+            '<span style="font-size:0.88rem; color:inherit; line-height:1.45; display:inline-block; margin-top:4px;">'
             'Subgroups with timing difference Δt ≤ 5 min exhibit +26.9% validation bias (exceeding ±15%), '
             'or 20 ≤ N < 50 pairs. Calibrated estimates shown with uncertainty warning.'
             '</span></div>',
@@ -362,9 +393,9 @@ def render() -> None:
         )
     with gc3:
         st.markdown(
-            '<div style="background:#3a1818; border-left:4px solid #f44336; padding:12px 16px; border-radius:6px;">'
-            '<strong style="color:#f44336; font-size:1.0rem;">🔴 Abstain (Safety Guard)</strong><br>'
-            '<span style="font-size:0.85rem; color:#cfd8dc;">'
+            '<div class="gate-card-red">'
+            '<strong style="color:#c62828; font-size:1.0rem;">🔴 Abstain (Safety Guard)</strong><br>'
+            '<span style="font-size:0.88rem; color:inherit; line-height:1.45; display:inline-block; margin-top:4px;">'
             'Triggered when N < 20 pairs or FRP > 279.18 MW (99th percentile). '
             'System suppresses calibration and reports raw satellite observations only.'
             '</span></div>',

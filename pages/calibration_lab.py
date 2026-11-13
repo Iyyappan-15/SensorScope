@@ -80,7 +80,8 @@ def render() -> None:
         ))
         fig.update_layout(
             height=380,
-            plot_bgcolor="#0e1117", paper_bgcolor="#0e1117", font_color="#fafafa",
+            plot_bgcolor="rgba(0,0,0,0)",
+            paper_bgcolor="rgba(0,0,0,0)",
         )
         st.plotly_chart(fig, use_container_width=True)
 
@@ -207,7 +208,8 @@ A calibration model learns the systematic relationship between these measurement
             xaxis_title="MODIS FRP (MW) — reference",
             yaxis_title="VIIRS FRP (MW) — raw vs calibrated",
             height=380,
-            plot_bgcolor="#0e1117", paper_bgcolor="#0e1117", font_color="#fafafa",
+            plot_bgcolor="rgba(0,0,0,0)",
+            paper_bgcolor="rgba(0,0,0,0)",
         )
         st.plotly_chart(fig2, use_container_width=True)
         st.caption(
