@@ -57,15 +57,34 @@ $$\text{FRP}_{\text{cell-day}} = \sum_{i=1}^{n} \text{FRP}_{\text{pixel}, i}$$
 
 ---
 
-## 5. Mathematical Cell-Day Accounting Reconciliation
+## 5. Mathematical Accounting Reconciliation: Diurnal vs Calendar Cell-Days
 
-The apparent discrepancy between 9,332 records and 6,772 cells is fully reconciled as follows:
-- **`grid_summary` table (9,332 rows):** Grouped by `(grid_id, acq_date, daynight, sensor)`.
-- **`disagreement` table (6,772 rows):** Pivoted by `(grid_id, acq_date, daynight)` with MODIS and VIIRS side by side.
-  - Jointly active cell-days (Both sensors detected fire): **2,560**
-  - MODIS-only cell-days (VIIRS detected no fire in cell): **488**
-  - VIIRS-only cell-days (MODIS detected no fire in cell): **3,724**
+The apparent counting relationships are reconciled with precision:
 
-**Mathematical Proof:**
-$$\text{Sensor-specific rows} = 2 \times 2,560 + 488 + 3,724 = 5,120 + 488 + 3,724 = 9,332 \quad [\checkmark]$$
-$$\text{Distinct active cell-days} = 2,560 + 488 + 3,724 = 6,772 \quad [\checkmark]$$
+### A. Level of Granularity Definitions
+1. **Sensor-Specific Observations (`grid_summary` table): 9,332 rows**
+   - Unit of observation: `(grid_id, acq_date, daynight, sensor)`
+2. **Diurnal Grid-Cell Observations (`disagreement` table): 6,772 rows**
+   - Unit of observation: `(grid_id, acq_date, daynight)`
+   - Day observations (`daynight == 'D'`): **6,655**
+   - Night observations (`daynight == 'N'`): **117**
+   - Sum: $6,655 + 117 = 6,772$
+3. **Calendar Grid-Cell-Days (pure date grouping): 6,751 unique `(grid_id, acq_date)`**
+   - Exactly **21 grid-cell-dates** had burning activity detected during both daytime and nighttime passes.
+   - Set-theoretic identity:
+     $$\text{Unique (cell, date)} = \text{Day} + \text{Night} - \text{Both} = 6,655 + 117 - 21 = 6,751$$
+     $$\text{Diurnal Observations} = 6,751 + 21 = 6,772$$
+
+### B. Sensor Activity Breakdown (at Diurnal Unit Level: 6,772 rows)
+- **Co-active pairs (`has_both == True`):** **2,560**
+  - Daytime co-active pairs: **2,556**
+  - Nighttime co-active pairs: **4**
+  - Exactly 2 grid cells had co-active detections during both day and night on the same date ($2,558$ unique `(grid_id, acq_date)` pairs).
+- **MODIS-only diurnal observations (`modis_only == True`):** **488** (488 Day, 0 Night)
+- **VIIRS-only diurnal observations (`viirs_only == True`):** **3,724** (3,611 Day, 113 Night)
+
+### C. Mathematical Reconciliation Identity
+$$\text{Sensor-specific rows} = 2 \times 2,560 + 488 + 3,724 = 5,120 + 488 + 3,724 = \mathbf{9,332} \quad [\checkmark]$$
+$$\text{Diurnal cell observations} = 2,560 + 488 + 3,724 = \mathbf{6,772} \quad [\checkmark]$$
+$$\text{Unique calendar cell-days} = 6,772 - 21 = \mathbf{6,751} \quad [\checkmark]$$
+

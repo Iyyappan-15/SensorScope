@@ -60,13 +60,25 @@ to maintain a consistent platform pair.
 
         # Data provenance
         st.divider()
-        st.markdown("### Data provenance")
+        st.markdown("### Data provenance & Observation Accounting")
         modis = data["modis"]
         viirs = data["viirs"]
 
         col1, col2 = st.columns(2)
         col1.metric("MODIS records loaded", f"{len(modis):,}")
         col2.metric("VIIRS records loaded", f"{len(viirs):,}")
+
+        st.markdown("""
+| Unit Level | Count | Definition & Discrepancy Reconciliation |
+|:---|:---:|:---|
+| **Sensor-Specific Rows** | **9,332** | `(grid_id, acq_date, daynight, sensor)` entries in `grid_summary` ($2 \\times 2,560 + 488 + 3,724 = 9,332$) |
+| **Diurnal Cell Observations** | **6,772** | `(grid_id, acq_date, daynight)` entries in `disagreement` (6,655 Day, 117 Night) |
+| **Unique Calendar Cell-Days** | **6,751** | Unique `(grid_id, acq_date)` combinations ($6,655 + 117 - 21\\text{ both} = 6,751$) |
+| **Co-Active Calibration Pairs** | **2,560** | Both sensors detected fire in cell on that pass (2,556 Day, 4 Night) |
+| **MODIS-Only Observations** | **488** | MODIS detected fire, VIIRS reported none (488 Day, 0 Night) |
+| **VIIRS-Only Observations** | **3,724** | VIIRS detected fire, MODIS reported none (3,611 Day, 113 Night) |
+        """)
+
 
         if data["using_real_data"]:
             if not modis.empty:

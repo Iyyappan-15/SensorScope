@@ -77,3 +77,14 @@ def test_cell_day_accounting_reconciliation():
     assert len(dis) == both + m_only + v_only
     # 2. Total sensor-specific grid rows must equal 2*both + m_only + v_only
     assert len(grid) == 2 * both + m_only + v_only
+    # 3. Check exact real dataset counts and diurnal vs calendar reconciliation
+    if len(dis) == 6772:
+        assert len(grid) == 9332
+        assert both == 2560
+        assert m_only == 488
+        assert v_only == 3724
+        # Unique (grid_id, acq_date) calendar cell-days
+        n_unique_cell_dates = len(dis.drop_duplicates(subset=["grid_id", "acq_date"]))
+        assert n_unique_cell_dates == 6751
+        assert len(dis) - n_unique_cell_dates == 21  # exactly 21 cell-dates had both Day and Night passes
+

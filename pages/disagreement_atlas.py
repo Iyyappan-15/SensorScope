@@ -185,6 +185,7 @@ def render() -> None:
                 df_sens = pd.read_csv(sens_file)
                 st.dataframe(df_sens, use_container_width=True, hide_index=True)
                 st.caption(
-                    "Notice: Matching rates scale strongly with search tolerances. "
-                    "Empirical mean observed time offsets range from 1.5 to 13.4 minutes."
+                    "**Key Finding on Ambiguity:** At strict thresholds (5 min, 5 km), only 6.6% of MODIS records find a candidate match. "
+                    "At liberal thresholds (30 min, 20 km), 51.2% of MODIS records find a candidate match, but **91.5% of those candidate associations (475/519) are ambiguous** "
+                    "(1 MODIS detection matched to multiple VIIRS clusters). Empirical mean observed time offsets range from 1.5 to 13.4 minutes."
                 )

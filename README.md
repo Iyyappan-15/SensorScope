@@ -77,8 +77,10 @@ Rather than naively merging hotspots or applying a black-box model everywhere, *
 Tested on real NASA FIRMS Standard Processing data over **Punjab & Haryana, India** (agricultural burning case study, Nov 2022 train vs Nov 2023 held-out validation; rectangular bounding box `[73.8°E, 29.5°N, 77.5°E, 32.5°N]`):
 
 - **Sensor-specific grid records:** 9,332
-- **Distinct active cell-days ($0.1^\circ$ geographic grid):** 6,772
-- **Co-active cell-days:** 2,560 | **MODIS-only:** 488 | **VIIRS-only:** 3,724
+- **Diurnal cell observations (`grid_id`, `acq_date`, `daynight`):** 6,772 (6,655 Day, 117 Night)
+- **Unique calendar cell-dates (`grid_id`, `acq_date`):** 6,751 (21 cell-dates observed in both Day and Night: $6,751 + 21 = 6,772$)
+- **Co-active pairs:** 2,560 (2,556 Day, 4 Night) | **MODIS-only:** 488 | **VIIRS-only:** 3,724
+
 
 | Model | Methodology | Train MAE | Held-Out Val MAE | Val Bias % | Spearman $\rho$ | Reliability Status |
 |---|---|---|---|---|---|:---:|

@@ -2,12 +2,11 @@
 scripts/sensitivity_matrix.py — 9-cell candidate association sensitivity scan.
 
 Evaluates 3 temporal windows (5, 15, 30 minutes) x 3 spatial tolerances (5, 11, 20 km)
-on real NASA FIRMS data, recording complete raw counts, denominators, and rates:
-  - Total records evaluated (denominator)
-  - Raw matched counts (1 candidate match)
-  - Raw ambiguous counts (>1 candidate match)
-  - Raw unmatched counts (0 candidate matches)
-  - Resulting match and ambiguity rates (%)
+on real NASA FIRMS data, recording complete raw counts, denominators, and granular rates:
+  - Denominator (total observations evaluated)
+  - Unambiguous matches (count and % of all obs)
+  - Ambiguous matches (count, % of all obs, and % of candidate-associated obs)
+  - Total Candidate-Associated (count and % of all obs)
   - Empirical delta-t distribution (mean, median in minutes)
 """
 
@@ -36,7 +35,7 @@ def run_sensitivity_scan():
     
     results = []
     
-    print("\nRunning 9-cell sensitivity scan with full counts & denominators...")
+    print("\nRunning 9-cell sensitivity scan with full counts & ambiguity breakdowns...")
     for dt in time_windows:
         for dr in spatial_tolerances:
             assoc = associate_sensors(sample_df, time_window_minutes=dt, spatial_tolerance_km=dr)
@@ -47,45 +46,55 @@ def run_sensitivity_scan():
             n_m = len(modis_sub)
             n_v = len(viirs_sub)
             
-            m_matched = int((modis_sub["match_status"] == "matched").sum())
+            m_unambig = int((modis_sub["match_status"] == "matched").sum())
             m_ambig   = int((modis_sub["match_status"] == "ambiguous").sum())
             m_unmatch = int((modis_sub["match_status"] == "unmatched").sum())
+            m_assoc   = m_unambig + m_ambig
             
-            v_matched = int((viirs_sub["match_status"] == "matched").sum())
+            v_unambig = int((viirs_sub["match_status"] == "matched").sum())
             v_ambig   = int((viirs_sub["match_status"] == "ambiguous").sum())
             v_unmatch = int((viirs_sub["match_status"] == "unmatched").sum())
+            v_assoc   = v_unambig + v_ambig
             
             dt_matched = modis_sub.loc[modis_sub["match_count"] > 0, "match_min_dt_min"].dropna()
             mean_dt = dt_matched.mean() if not dt_matched.empty else np.nan
             median_dt = dt_matched.median() if not dt_matched.empty else np.nan
+            
+            # Ambiguity fractions among candidate-associated records
+            m_ambig_of_assoc = (m_ambig / m_assoc * 100) if m_assoc > 0 else 0.0
+            v_ambig_of_assoc = (v_ambig / v_assoc * 100) if v_assoc > 0 else 0.0
             
             results.append({
                 "time_window_min": dt,
                 "spatial_tol_km": dr,
                 # MODIS statistics
                 "modis_denom": n_m,
-                "modis_matched_count": m_matched,
-                "modis_ambig_count": m_ambig,
-                "modis_unmatch_count": m_unmatch,
-                "modis_match_pct": round((m_matched + m_ambig) / n_m * 100, 1) if n_m > 0 else 0,
-                "modis_ambig_pct": round(m_ambig / n_m * 100, 1) if n_m > 0 else 0,
+                "modis_unambig_n": m_unambig,
+                "modis_ambig_n": m_ambig,
+                "modis_unmatch_n": m_unmatch,
+                "modis_unambig_pct": round(m_unambig / n_m * 100, 1),
+                "modis_ambig_of_all_pct": round(m_ambig / n_m * 100, 1),
+                "modis_candidate_assoc_pct": round(m_assoc / n_m * 100, 1),
+                "modis_ambig_of_assoc_pct": round(m_ambig_of_assoc, 1),
                 # VIIRS statistics
                 "viirs_denom": n_v,
-                "viirs_matched_count": v_matched,
-                "viirs_ambig_count": v_ambig,
-                "viirs_unmatch_count": v_unmatch,
-                "viirs_match_pct": round((v_matched + v_ambig) / n_v * 100, 1) if n_v > 0 else 0,
-                "viirs_ambig_pct": round(v_ambig / n_v * 100, 1) if n_v > 0 else 0,
+                "viirs_unambig_n": v_unambig,
+                "viirs_ambig_n": v_ambig,
+                "viirs_unmatch_n": v_unmatch,
+                "viirs_unambig_pct": round(v_unambig / n_v * 100, 1),
+                "viirs_ambig_of_all_pct": round(v_ambig / n_v * 100, 1),
+                "viirs_candidate_assoc_pct": round(v_assoc / n_v * 100, 1),
+                "viirs_ambig_of_assoc_pct": round(v_ambig_of_assoc, 1),
                 # Observed temporal offsets
                 "mean_observed_dt_min": round(mean_dt, 2) if not np.isnan(mean_dt) else "—",
                 "median_observed_dt_min": round(median_dt, 2) if not np.isnan(median_dt) else "—",
             })
-            print(f"  dt={dt:2d}m, dr={dr:4.1f}km | MODIS: {m_matched+m_ambig}/{n_m} ({results[-1]['modis_match_pct']}%) [ambig: {m_ambig}] | VIIRS: {v_matched+v_ambig}/{n_v} ({results[-1]['viirs_match_pct']}%) [ambig: {v_ambig}] | dt: {results[-1]['mean_observed_dt_min']}m")
+            print(f"  dt={dt:2d}m, dr={dr:4.1f}km | MODIS assoc: {m_assoc}/{n_m} ({results[-1]['modis_candidate_assoc_pct']}%) [ambig of assoc: {results[-1]['modis_ambig_of_assoc_pct']}%] | VIIRS assoc: {v_assoc}/{n_v} ({results[-1]['viirs_candidate_assoc_pct']}%) [ambig of assoc: {results[-1]['viirs_ambig_of_assoc_pct']}%] | mean dt: {results[-1]['mean_observed_dt_min']}m")
             
     df_res = pd.DataFrame(results)
     out_csv = ROOT / "docs" / "sensitivity_scan_results.csv"
     df_res.to_csv(out_csv, index=False)
-    print(f"\nSaved updated sensitivity scan with full counts to {out_csv.name}")
+    print(f"\nSaved updated sensitivity scan with granular rates to {out_csv.name}")
     return df_res
 
 
