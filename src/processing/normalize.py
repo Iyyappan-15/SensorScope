@@ -211,27 +211,33 @@ def parse_viirs_csv(path: Path) -> pd.DataFrame:
 # ── Batch loaders ──────────────────────────────────────────────────────────────
 
 def load_all_modis(directory: Path = RAW_MODIS_DIR) -> pd.DataFrame:
-    """Load and concatenate all MODIS CSVs in directory."""
+    """Load and concatenate all MODIS CSVs in directory with non-destructive duplicate auditing."""
     files = sorted(directory.glob("*.csv"))
     if not files:
         log.warning("No MODIS CSV files found in %s", directory)
         return pd.DataFrame(columns=SCHEMA_COLUMNS)
     frames = [parse_modis_csv(f) for f in files]
     df = pd.concat(frames, ignore_index=True)
-    df = df.drop_duplicates(subset=["latitude", "longitude", "acq_datetime", "sensor"])
+    exact_dups = df.duplicated().sum()
+    if exact_dups > 0:
+        log.info("Dropped %d exact duplicate MODIS rows.", exact_dups)
+        df = df.drop_duplicates()
     log.info("MODIS: loaded %d records from %d files.", len(df), len(files))
     return df
 
 
 def load_all_viirs(directory: Path = RAW_VIIRS_DIR) -> pd.DataFrame:
-    """Load and concatenate all VIIRS CSVs in directory."""
+    """Load and concatenate all VIIRS CSVs in directory with non-destructive duplicate auditing."""
     files = sorted(directory.glob("*.csv"))
     if not files:
         log.warning("No VIIRS CSV files found in %s", directory)
         return pd.DataFrame(columns=SCHEMA_COLUMNS)
     frames = [parse_viirs_csv(f) for f in files]
     df = pd.concat(frames, ignore_index=True)
-    df = df.drop_duplicates(subset=["latitude", "longitude", "acq_datetime", "sensor"])
+    exact_dups = df.duplicated().sum()
+    if exact_dups > 0:
+        log.info("Dropped %d exact duplicate VIIRS rows.", exact_dups)
+        df = df.drop_duplicates()
     log.info("VIIRS: loaded %d records from %d files.", len(df), len(files))
     return df
 

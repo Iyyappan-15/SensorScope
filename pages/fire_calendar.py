@@ -40,7 +40,7 @@ def render() -> None:
 
     # ── Controls ───────────────────────────────────────────────────────────────
     colA, colB, colC = st.columns(3)
-    metric = colA.selectbox("Activity metric", ["Detection count", "FRP sum (MW)"])
+    metric = colA.selectbox("Activity metric", ["Detection count", "Summed FRP (MW)"])
     daynight_filter = colB.selectbox("Day / Night", ["Both", "Day only", "Night only"])
     show_calibrated = colC.checkbox("Show calibrated VIIRS estimate", value=True)
 
@@ -73,6 +73,8 @@ def render() -> None:
         y_viirs = "viirs_frp"
         y_label = "Total FRP (MW)"
 
+    from analysis.reliability import compute_empirical_error_envelope
+
     # Calibrated VIIRS estimate (if model available and reliable)
     best_model = None
     best_status = "red"
@@ -82,10 +84,25 @@ def render() -> None:
             best_status = best_model.reliability_status
             break
 
-    if best_model and show_calibrated and metric == "FRP sum (MW)":
-        monthly["viirs_calibrated"] = (
-            best_model.slope * monthly[y_viirs] + best_model.intercept * monthly["modis_count"]
-        ).clip(lower=0)
+    if best_model and show_calibrated and metric == "Summed FRP (MW)":
+        if hasattr(best_model, "model_obj") and best_model.model_obj is not None:
+            # Predict using predictor-side features (VIIRS FRP + VIIRS count + is_night)
+            is_night_flag = 1.0 if daynight_filter == "Night only" else 0.0
+            X_in = np.column_stack([
+                monthly[y_viirs].values,
+                monthly["viirs_count"].values,
+                np.full(len(monthly), is_night_flag),
+            ])
+            monthly["viirs_calibrated"] = np.maximum(0.0, best_model.model_obj.predict(X_in))
+        else:
+            monthly["viirs_calibrated"] = np.maximum(
+                0.0, best_model.slope * monthly[y_viirs].values + best_model.intercept
+            )
+        
+        # Empirical residual envelope (from out-of-fold training residuals)
+        monthly["err_lower"], monthly["err_upper"] = compute_empirical_error_envelope(
+            monthly["viirs_calibrated"].values
+        )
         has_calibrated = True
     else:
         has_calibrated = False
@@ -109,8 +126,21 @@ def render() -> None:
         marker_color="#1E90FF", opacity=0.75,
     ))
 
-    # Calibrated VIIRS line
+    # Calibrated VIIRS line + Empirical Error Envelope
     if has_calibrated:
+        # Shaded empirical envelope
+        fig.add_trace(go.Scatter(
+            x=monthly["period"], y=monthly["err_upper"],
+            mode="lines", line=dict(width=0),
+            showlegend=False, hoverinfo="skip",
+        ))
+        fig.add_trace(go.Scatter(
+            x=monthly["period"], y=monthly["err_lower"],
+            mode="lines", line=dict(width=0),
+            fill="tonexty", fillcolor="rgba(76, 175, 80, 0.15)",
+            name="Empirical Residual Envelope (e₀₅–e₉₅)",
+        ))
+        # Point prediction
         fig.add_trace(go.Scatter(
             x=monthly["period"], y=monthly["viirs_calibrated"],
             name="VIIRS → MODIS-ref (calibrated)",

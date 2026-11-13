@@ -5,7 +5,8 @@
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![NASA FIRMS](https://img.shields.io/badge/data-NASA%20FIRMS%20SP-red.svg)](https://firms.modaps.eosdis.nasa.gov/)
 [![Streamlit App](https://img.shields.io/badge/app-Streamlit-FF4B4B.svg)](https://streamlit.io/)
-[![Tests Passing](https://img.shields.io/badge/tests-6%20passed-brightgreen.svg)]()
+[![Tests Passing](https://img.shields.io/badge/tests-9%20passed-brightgreen.svg)]()
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 ---
 
@@ -15,20 +16,20 @@ NASA has collected satellite active-fire observations for over two decades using
 - **MODIS (Terra & Aqua):** Nominal 1 km pixel resolution (2000–present)
 - **VIIRS (Suomi-NPP & NOAA-20/21):** Nominal 375 m pixel resolution (2012–present)
 
-Because VIIRS has finer resolution and higher detection sensitivity, it detects smaller, cooler fires that MODIS misses. **Comparing them directly creates a false impression that fire activity has suddenly spiked after 2012.**
+Because MODIS and VIIRS have different spatial resolutions and detection characteristics, they produce **inconsistent fire-activity measurements**. VIIRS detects smaller, lower-intensity fires that MODIS misses. Comparing raw hotspot counts across sensor transition periods risks confusing satellite instrument sensitivity with real-world changes in burning.
 
 ```
-Historical Fire Trend Distortion:
+Long-Term Satellite Observation Transition:
   2000 ───────────── 2011 │ 2012 ────────────────────────── 2024
      [ MODIS Native ]     │     [ VIIRS Introduced ]
      (1 km nominal)       │     (375 m - sees smaller fires)
                           │
-                          └──> Apparent sudden surge in burning?
-                               Or sensor-induced observation artifact?
+                          └──> Risk: Inconsistent measurements
+                               confused with real burning trends
 ```
 
 ### 3 Core Distortions
-1. **Inconsistent historical measurements:** Long-term fire trends mislead policy and land management.
+1. **Inconsistent historical measurements:** Long-term fire trends mislead policy, land management, and emission inventories.
 2. **Detection disparity:** The same burning region appears more active simply due to sensor sensitivity.
 3. **Observation ambiguity:** A missing FIRMS record does not mean "zero fires" — it may reflect orbit gaps or cloud obstruction.
 
@@ -55,7 +56,7 @@ Rather than naively merging hotspots or applying a black-box model everywhere, *
                   │       SensorShift Calibration Engine         │
                   │   Model A: Raw Identity (No correction)      │
                   │   Model B: Global Reduced Major Axis (RMA)   │
-                  │   Model C: Context-Aware Cyclic OLS          │
+                  │   Model C: Predictor-Side OLS (FRP + Count)  │
                   └──────────────────────┬───────────────────────┘
                                          ▼
                              ┌───────────────────────┐
@@ -64,33 +65,37 @@ Rather than naively merging hotspots or applying a black-box model everywhere, *
                ┌─────────────────────────┼────────────────────────┐
                ▼                         ▼                        ▼
        🟢 GREEN STATUS           🟡 YELLOW STATUS          🔴 RED STATUS
-     Sufficient Evidence         Borderline Coverage     Insufficient Evidence
+     Supported (Pilot)          Borderline Coverage     Insufficient Evidence
   Apply validated correction     Show caution banner       ABSTAIN from correction
-   Show error bounds on FRP      Preserve raw values      Report missing evidence
+   Empirical error envelope      Preserve raw values      Report missing evidence
 ```
 
 ---
 
 ## 🧪 Validated Empirical Results (Real NASA FIRMS Data)
 
-Tested on real NASA FIRMS Standard Processing data over **Punjab & Haryana, India** (agricultural burning case study, Nov 2022 train vs Nov 2023 held-out validation):
+Tested on real NASA FIRMS Standard Processing data over **Punjab & Haryana, India** (agricultural burning case study, Nov 2022 train vs Nov 2023 held-out validation; rectangular bounding box `[73.8°E, 29.5°N, 77.5°E, 32.5°N]`):
 
-| Model | Methodology | Train MAE | Held-Out Val MAE | Bias % | Spearman $\rho$ | Reliability Status |
+- **Sensor-specific grid records:** 9,332
+- **Distinct active cell-days ($0.1^\circ$ geographic grid):** 6,772
+- **Co-active cell-days:** 2,560 | **MODIS-only:** 488 | **VIIRS-only:** 3,724
+
+| Model | Methodology | Train MAE | Held-Out Val MAE | Val Bias % | Spearman $\rho$ | Reliability Status |
 |---|---|---|---|---|---|:---:|
-| **Model A: Identity** | Raw VIIRS (No correction) | — | 30.89 MW | +6.7% | 0.465 | 🟢 Baseline |
-| **Model B: Global RMA** | Reduced Major Axis (Li et al. 2018) | 26.85 MW | 27.22 MW | -10.4% | 0.465 | 🟢 Supported |
-| **Model C: Context-Aware** | OLS + Cyclic Month + Day/Night | 25.10 MW | **26.17 MW** | **+7.8%** | **0.465** | 🟢 **Best Model** |
+| **Model A: Identity** | Raw VIIRS (No correction) | — | 30.8893 MW | +6.74% | 0.465330 | 🟢 Baseline |
+| **Model B: Global RMA** | Reduced Major Axis (Li et al. 2018) | 26.85 MW | 27.2156 MW | -10.38% | 0.465324 | 🟢 Supported |
+| **Model C: Context-Aware** | Predictor-side OLS (VIIRS FRP + Count) | 25.10 MW | **26.2188 MW** | **+8.37%** | **0.467365** | 🟢 **Best Model** |
 
-> **Scientific Finding:** Context-aware calibration reduces held-out validation Mean Absolute Error from **30.89 MW down to 26.17 MW** on real NASA observations.
+> **Scientific Finding:** Context-aware calibration reduces held-out validation Mean Absolute Error from **30.89 MW down to 26.22 MW** on real NASA observations without any target leakage. Out-of-fold training residual envelopes achieve **93.3% empirical coverage** on untouched future test data.
 
 ---
 
 ## 🖥️ 5-Screen Interactive Architecture
 
 1. **🏠 Overview:** Regional KPI cards, interactive Mapbox satellite hotspot viewer, monthly time series, and overall reliability stats.
-2. **🗺️ Disagreement Atlas:** Geospatial divergence maps ($\Delta \text{count}$, $\Delta \text{FRP}$), day vs. night divergence, and candidate association breakdowns.
-3. **🔬 Calibration Lab:** Paired scatter plots, 1:1 reference comparisons, before-and-after calibration shifts, and model evaluation scorecards.
-4. **📅 Fire Activity Calendar:** Long-term historical burning timeline, Z-score anomaly detector, and seasonal crop residue heatmaps (Kharif vs Rabi).
+2. **🗺️ Disagreement Atlas:** Geospatial divergence maps ($\Delta \text{count}$, $\Delta \text{FRP}$), day vs. night divergence, candidate association status, and a full 9-cell spatial/temporal sensitivity matrix.
+3. **🔬 Calibration Lab:** Paired scatter plots, 1:1 reference comparisons, before-and-after calibration shifts, and high-precision model evaluation scorecards.
+4. **📅 Fire Activity Calendar:** Raw sensor-specific observations, calibrated estimates with descriptive empirical error envelopes where supported, and clearly identified cases where calibration is unavailable.
 5. **📋 Methodology & Evidence:** Academic citations, processing assumptions, limitations, and CSV data export buttons.
 
 ---
@@ -104,7 +109,7 @@ cd sensorscope
 pip install -r requirements.txt
 ```
 
-### 2. Configure Environment
+### 2. Configure Environment (Optional for Live API Downloads)
 Copy `.env.example` to `.env` and insert your NASA FIRMS `MAP_KEY`:
 ```env
 FIRMS_MAP_KEY=your_key_here
@@ -112,6 +117,7 @@ AOI_BBOX=73.8,29.5,77.5,32.5
 DATA_START_YEAR=2022
 DATA_END_YEAR=2024
 ```
+*(If `.env` is omitted, the application automatically runs in **no-API sample-data mode**).*
 
 ### 3. Run the App
 ```bash
@@ -133,5 +139,6 @@ pytest tests -v
 
 ---
 
-## ⚖️ License & Disclosure
-Developed for the **NASA Space Apps Challenge 2026**. Uses NASA Open Data under open scientific access terms.
+## ⚖️ License & AI Disclosure
+- **License:** MIT License. See [LICENSE](LICENSE).
+- **AI Tool Disclosure:** Google Antigravity / Gemini was used for code scaffolding, testing, and documentation formatting; all scientific logic, data handling, and models were reviewed and validated by the team.

@@ -169,7 +169,22 @@ def render() -> None:
         )
         st.plotly_chart(fig5, use_container_width=True)
         st.caption(
-            f"Association window: ±{15} min · {11} km. "
-            "These are *candidate* associations, not confirmed fire identity. "
-            "Many-to-many matches are expected (1 large MODIS pixel ↔ multiple VIIRS pixels)."
+            "⚠️ **Methodological Boundary:** These are *exploratory candidate associations*, "
+            "not confirmed ground-truth fire identity matches. Orbital overpass time differences vary continuously."
         )
+
+        # 9-cell sensitivity matrix
+        sens_file = Path(__file__).parent.parent / "docs" / "sensitivity_scan_results.csv"
+        if sens_file.exists():
+            with st.expander("🔬 View 9-Cell Spatial & Temporal Sensitivity Matrix"):
+                st.markdown(
+                    "Sensitivity of cross-sensor candidate matching across 3 temporal windows "
+                    "($\\Delta t \\in \\{5, 15, 30\\}\\text{ min}$) and 3 spatial radii "
+                    "($\\Delta r \\in \\{5, 11, 20\\}\\text{ km}$):"
+                )
+                df_sens = pd.read_csv(sens_file)
+                st.dataframe(df_sens, use_container_width=True, hide_index=True)
+                st.caption(
+                    "Notice: Matching rates scale strongly with search tolerances. "
+                    "Empirical mean observed time offsets range from 1.5 to 13.4 minutes."
+                )

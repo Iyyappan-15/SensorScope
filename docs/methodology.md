@@ -3,7 +3,7 @@
 ## 1. Mathematical Formulation
 
 ### 1.1 Spatial Grid Discretization
-Satellite observations are mapped into equal-area geographic cells $\mathcal{C}_{i,j}$ defined by a resolution of $\Delta \lambda = \Delta \phi \approx 0.1^\circ$ (~11 km):
+Satellite observations are mapped into a regular geographic grid $\mathcal{C}_{i,j}$ defined by a resolution of $\Delta \lambda = \Delta \phi = 0.1^\circ$ ($\approx 11.1\text{ km latitude} \times 9.6\text{ km longitude}$ at 30°N):
 
 $$\mathcal{C}_{i,j} = \left\{ (\phi, \lambda) \mid \phi \in [\phi_i, \phi_i + \Delta \phi), \lambda \in [\lambda_j, \lambda_j + \Delta \lambda) \right\}$$
 

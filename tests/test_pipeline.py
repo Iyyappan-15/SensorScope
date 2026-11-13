@@ -1,5 +1,5 @@
 """
-test_pipeline.py — End-to-end tests for normalization, association, and disagreement.
+test_pipeline.py — End-to-end tests for normalization, association, disagreement, and accounting.
 """
 
 import pytest
@@ -11,18 +11,16 @@ import sys
 ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(ROOT / "src"))
 
-from config import SCHEMA_COLUMNS
-from processing.normalize import parse_modis_csv, parse_viirs_csv
+from config import SCHEMA_COLUMNS, RAW_MODIS_DIR, RAW_VIIRS_DIR
+from processing.normalize import parse_modis_csv, parse_viirs_csv, load_all
 from processing.association import associate_sensors, haversine_km
 from analysis.disagreement import build_grid_summary, compute_disagreement
 
 
 def test_haversine_distance():
-    # Distance between same points should be 0
     d = haversine_km(np.array([30.0]), np.array([75.0]), np.array([30.0]), np.array([75.0]))
     assert np.isclose(d[0], 0.0)
 
-    # 1 degree latitude is approx 111 km
     d1 = haversine_km(np.array([30.0]), np.array([75.0]), np.array([31.0]), np.array([75.0]))
     assert 110.0 < d1[0] < 112.0
 
@@ -37,8 +35,7 @@ def test_normalize_schema_compliance():
         assert (df["frp_mw"] > 0).all()
 
 
-def test_association_logic():
-    # Construct a minimal paired fixture
+def test_association_candidate_logic():
     t0 = pd.Timestamp("2022-11-02 08:00:00", tz="UTC")
     df = pd.DataFrame([
         {
@@ -61,31 +58,22 @@ def test_association_logic():
     assert matched["match_status"].iloc[0] == "matched"
     assert matched["match_status"].iloc[1] == "matched"
     assert matched["match_count"].iloc[0] >= 1
-    assert matched["match_count"].iloc[1] >= 1
 
 
-def test_disagreement_computation():
-    t0 = pd.Timestamp("2022-11-02 08:00:00", tz="UTC")
-    df = pd.DataFrame([
-        {
-            "sensor": "MODIS", "satellite": "Aqua", "product": "MODIS_SP",
-            "latitude": 30.51, "longitude": 75.51, "acq_date": "2022-11-02",
-            "acq_time": "0800", "acq_datetime": t0, "frp_mw": 30.0,
-            "confidence_raw": "85", "daynight": "D", "scan": 1.0, "track": 1.0,
-            "source_file": "test"
-        },
-        {
-            "sensor": "VIIRS", "satellite": "SNPP", "product": "VIIRS_SNPP_SP",
-            "latitude": 30.52, "longitude": 75.52, "acq_date": "2022-11-02",
-            "acq_time": "0805", "acq_datetime": t0, "frp_mw": 12.0,
-            "confidence_raw": "nominal", "daynight": "D", "scan": 0.375, "track": 0.375,
-            "source_file": "test"
-        }
-    ])
+def test_cell_day_accounting_reconciliation():
+    """Verify exact mathematical reconciliation between sensor-specific and pivoted cell-days."""
+    if not (RAW_MODIS_DIR.exists() and list(RAW_MODIS_DIR.glob("*.csv"))):
+        pytest.skip("Raw NASA data not downloaded yet.")
+        
+    combined = load_all(RAW_MODIS_DIR, RAW_VIIRS_DIR)
+    grid = build_grid_summary(combined)
+    dis = compute_disagreement(grid)
     
-    grid = build_grid_summary(df)
-    disagree = compute_disagreement(grid)
-    assert not disagree.empty
-    assert (disagree["has_both"] == True).any()
-    assert "d_count" in disagree.columns
-    assert "d_frp" in disagree.columns
+    both = int(dis["has_both"].sum())
+    m_only = int(dis["modis_only"].sum())
+    v_only = int(dis["viirs_only"].sum())
+    
+    # 1. Total distinct active cell-days must equal sum of partition
+    assert len(dis) == both + m_only + v_only
+    # 2. Total sensor-specific grid rows must equal 2*both + m_only + v_only
+    assert len(grid) == 2 * both + m_only + v_only

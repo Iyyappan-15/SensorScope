@@ -298,8 +298,14 @@ def model_global(pairs: pd.DataFrame) -> CalibrationResult:
 
 def model_context(pairs: pd.DataFrame) -> CalibrationResult:
     """
-    Model C: OLS with contextual features.
-    Features: frp_viirs, daynight (D/N), season, month_sin, month_cos.
+    Model C: Multi-feature calibration using strictly predictor-side observations.
+    Features:
+      - frp_viirs: Summed observed VIIRS FRP per cell-day (MW)
+      - count_viirs: Number of VIIRS hotspot detections in cell-day (cluster density)
+      - is_night: Binary observation flag (1 if Night, 0 if Day)
+    
+    Zero-variance seasonal features (e.g. cyclic month in a single-season pilot)
+    are excluded to maintain statistical validity.
     """
     result = CalibrationResult(
         model_name="Context-aware calibration",
@@ -326,12 +332,11 @@ def model_context(pairs: pd.DataFrame) -> CalibrationResult:
 
     def _build_features(df: pd.DataFrame) -> np.ndarray:
         frp = df["frp_viirs"].values.reshape(-1, 1)
-        # Cyclic month encoding
-        month_sin = np.sin(2 * np.pi * df["month"].values / 12).reshape(-1, 1)
-        month_cos = np.cos(2 * np.pi * df["month"].values / 12).reshape(-1, 1)
-        # Day/night binary
+        # Hotspot cluster density
+        count = df["count_viirs"].values.reshape(-1, 1) if "count_viirs" in df.columns else np.ones_like(frp)
+        # Day/night binary category
         is_night = (df["daynight"].values == "N").astype(float).reshape(-1, 1)
-        return np.hstack([frp, month_sin, month_cos, is_night])
+        return np.hstack([frp, count, is_night])
 
     X_train = _build_features(train)
     y_train = train["frp_modis"].values
@@ -341,8 +346,8 @@ def model_context(pairs: pd.DataFrame) -> CalibrationResult:
 
     result.model_obj = model
     result.trained = True
-    result.reason = f"Context-aware OLS trained on {len(train)} pairs."
-    result.feature_names = ["frp_viirs", "month_sin", "month_cos", "is_night"]
+    result.reason = f"Context-aware model trained on {len(train)} paired observations."
+    result.feature_names = ["frp_viirs", "count_viirs", "is_night"]
 
     def _predict_ctx(df: pd.DataFrame) -> np.ndarray:
         return model.predict(_build_features(df))

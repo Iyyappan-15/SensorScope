@@ -1,21 +1,27 @@
 """
-reliability.py — Reliability gate: decides whether calibrated values
-                 should be shown, warned, or suppressed per region.
+reliability.py — Evidence-based Reliability Gate & Empirical Error Bounds.
 
-Traffic light system:
-  🟢 GREEN  — Reliable: apply correction, show calibrated estimate
-  🟡 YELLOW — Caution: show correction with uncertainty warning
-  🔴 RED    — Abstain: show raw data only, explain why
+Decides whether calibrated estimates should be shown, warned, or suppressed:
+  🟢 GREEN  — Supported within evaluated pilot conditions:
+              adequate distinct paired observations (N >= 50 provisional),
+              acceptable held-out bias (<= 15%), and input conditions in-domain.
+  🟡 YELLOW — Caution:
+              limited evidence (20 <= N < 50 provisional), borderline validation bias,
+              or marginal input domain coverage.
+  🔴 RED    — Abstain:
+              insufficient paired observations (N < 20 provisional),
+              or inputs outside the historical training distribution.
 
-The gate operates INDEPENDENTLY of whether a model was trained.
-Even a trained model is "red" for a region if that region had
-insufficient paired observations or is out of the model's tested range.
+Empirical Error Envelopes:
+  Computed from out-of-fold training residuals [max(0, y_hat + e_05), y_hat + e_95].
+  Transparently labelled as descriptive empirical envelopes, NOT normal 95% intervals.
 """
 
 from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
+from typing import Optional
 
 import pandas as pd
 import numpy as np
@@ -35,33 +41,76 @@ log = logging.getLogger(__name__)
 
 @dataclass
 class RegionReliability:
-    region_id: str               # grid_id or user-defined label
+    region_id: str               # grid_id or descriptive region label
     status: str                  # "green" | "yellow" | "red"
-    n_paired_obs: int
+    n_paired_obs: int            # Distinct co-active cell-day observations
     best_model: str
-    val_mae: float | None
-    val_bias_pct: float | None
-    reason: str                  # Human-readable explanation
-    show_calibrated: bool        # True → display calibrated estimate
-    show_warning: bool           # True → display caution banner
-    abstain: bool                # True → show raw only
+    val_mae: Optional[float]
+    val_bias_pct: Optional[float]
+    in_domain: bool              # True if input variables fall within Q01-Q99 training range
+    reason: str                  # Transparent scientific rationale
+    show_calibrated: bool        # True -> display calibrated estimate
+    show_warning: bool           # True -> display caution banner
+    abstain: bool                # True -> suppress calibrated estimate, show raw only
 
 
-def _status_label(status: str) -> str:
-    return {"green": "🟢 Reliable", "yellow": "🟡 Use with caution",
-            "red": "🔴 Calibration unavailable"}.get(status, status)
+def check_input_domain(
+    frp_viirs_value: float,
+    daynight_value: str,
+    q01_frp: float = 2.13,
+    q99_frp: float = 279.18,
+    known_daynight: tuple[str, ...] = ("D", "N"),
+) -> tuple[bool, str]:
+    """
+    Check whether predictor input variables fall within the historical training range.
+    Uses continuous percentiles on FRP, category representation on Day/Night.
+    """
+    if daynight_value not in known_daynight:
+        return False, f"Day/Night condition '{daynight_value}' was not represented in training."
+    
+    if frp_viirs_value < q01_frp:
+        return False, f"VIIRS FRP ({frp_viirs_value:.1f} MW) is below 1st percentile of training data ({q01_frp:.1f} MW)."
+    
+    if frp_viirs_value > q99_frp:
+        return False, f"VIIRS FRP ({frp_viirs_value:.1f} MW) exceeds 99th percentile of training data ({q99_frp:.1f} MW)."
+        
+    return True, "Input variables within historical training domain."
 
 
 def assess_region(
     region_id: str,
     n_paired_obs: int,
     best_result: CalibrationResult,
+    input_frp_viirs: Optional[float] = None,
+    input_daynight: str = "D",
 ) -> RegionReliability:
     """
-    Assess reliability for a single region given the best calibration result.
+    Assess reliability for a given analysis unit (region or individual grid cell).
+    Enforces sample adequacy, validation performance, and input domain limits.
     """
     val = best_result.val_metrics
+    
+    # 1. Input domain check (if specific input values provided)
+    in_domain = True
+    domain_msg = ""
+    if input_frp_viirs is not None:
+        in_domain, domain_msg = check_input_domain(input_frp_viirs, input_daynight)
+        if not in_domain:
+            return RegionReliability(
+                region_id=region_id,
+                status="red",
+                n_paired_obs=n_paired_obs,
+                best_model=best_result.model_name,
+                val_mae=None,
+                val_bias_pct=None,
+                in_domain=False,
+                reason=f"Out of domain: {domain_msg} System abstains from extrapolation.",
+                show_calibrated=False,
+                show_warning=False,
+                abstain=True,
+            )
 
+    # 2. Sample adequacy check (Provisional engineering rules: 20 / 50 distinct cell-days)
     if n_paired_obs < RELIABILITY_YELLOW_MIN_PAIRS:
         return RegionReliability(
             region_id=region_id,
@@ -70,16 +119,18 @@ def assess_region(
             best_model=best_result.model_name,
             val_mae=None,
             val_bias_pct=None,
+            in_domain=True,
             reason=(
-                f"Only {n_paired_obs} paired observations in this region "
-                f"(minimum required: {RELIABILITY_YELLOW_MIN_PAIRS}). "
-                "Raw sensor measurements shown; calibrated estimate unavailable."
+                f"Only {n_paired_obs} distinct co-active cell-days in this unit "
+                f"(provisional minimum required: {RELIABILITY_YELLOW_MIN_PAIRS}). "
+                "Calibration unavailable; raw satellite observations preserved."
             ),
             show_calibrated=False,
             show_warning=False,
             abstain=True,
         )
 
+    # 3. Validation evidence check
     if val is None or np.isnan(val.mae):
         return RegionReliability(
             region_id=region_id,
@@ -88,9 +139,10 @@ def assess_region(
             best_model=best_result.model_name,
             val_mae=None,
             val_bias_pct=None,
+            in_domain=True,
             reason=(
-                f"{n_paired_obs} pairs available but no validation period data "
-                "exists for this region. Use calibrated values with caution."
+                f"{n_paired_obs} co-active cell-days available, but held-out validation "
+                "evidence is incomplete. Calibrated values shown with caution."
             ),
             show_calibrated=True,
             show_warning=True,
@@ -100,6 +152,7 @@ def assess_region(
     mae = val.mae
     bias_pct = val.mean_bias_pct
 
+    # 4. Green status: Adequate sample, acceptable bias, supported within pilot conditions
     if (n_paired_obs >= RELIABILITY_GREEN_MIN_PAIRS and
             abs(bias_pct) <= RELIABILITY_GREEN_MAX_BIAS_PCT):
         return RegionReliability(
@@ -109,16 +162,18 @@ def assess_region(
             best_model=best_result.model_name,
             val_mae=round(mae, 2),
             val_bias_pct=round(bias_pct, 1),
+            in_domain=True,
             reason=(
-                f"Calibration supported: {n_paired_obs} paired observations, "
-                f"validation MAE = {mae:.1f} MW, bias = {bias_pct:+.1f}%."
+                f"Reliable within evaluated pilot conditions: {n_paired_obs} co-active cell-days, "
+                f"held-out validation MAE = {mae:.1f} MW, bias = {bias_pct:+.1f}%. "
+                "(Note: Spatial/temporal dependence may reduce effective independent sample size)."
             ),
             show_calibrated=True,
             show_warning=False,
             abstain=False,
         )
 
-    # Yellow: enough data but validation metrics are borderline
+    # 5. Yellow status: Moderate sample or borderline validation
     return RegionReliability(
         region_id=region_id,
         status="yellow",
@@ -126,11 +181,12 @@ def assess_region(
         best_model=best_result.model_name,
         val_mae=round(mae, 2),
         val_bias_pct=round(bias_pct, 1),
+        in_domain=True,
         reason=(
-            f"Moderate evidence: {n_paired_obs} pairs, "
+            f"Moderate evidence: {n_paired_obs} co-active cell-days, "
             f"validation bias {bias_pct:+.1f}% "
             f"(threshold ±{RELIABILITY_GREEN_MAX_BIAS_PCT}%). "
-            "Calibrated estimate shown with caution."
+            "Calibrated estimate shown with uncertainty warning."
         ),
         show_calibrated=True,
         show_warning=True,
@@ -138,16 +194,27 @@ def assess_region(
     )
 
 
+def compute_empirical_error_envelope(
+    y_pred: np.ndarray,
+    e05: float = -48.53,
+    e95: float = 77.36,
+) -> tuple[np.ndarray, np.ndarray]:
+    """
+    Construct descriptive empirical error envelopes from out-of-fold training residuals.
+    Lower bound is clipped at 0.0 MW (FRP cannot be physically negative).
+    """
+    y_pred = np.asarray(y_pred, dtype=float)
+    lower = np.maximum(0.0, y_pred + e05)
+    upper = y_pred + e95
+    return lower, upper
+
+
 def build_reliability_table(
     disagree_df: pd.DataFrame,
     best_result: CalibrationResult,
 ) -> pd.DataFrame:
     """
-    Build a per-grid-cell reliability table for the dashboard.
-
-    Returns DataFrame with columns:
-      grid_id, grid_lat, grid_lon, n_paired_obs, status,
-      status_label, reason, show_calibrated, abstain
+    Construct per-grid-cell reliability audit table.
     """
     if disagree_df.empty:
         return pd.DataFrame()
@@ -166,13 +233,19 @@ def build_reliability_table(
             n_paired_obs=int(row["n_paired_obs"]),
             best_result=best_result,
         )
+        status_label = {
+            "green": "🟢 Reliable (pilot)",
+            "yellow": "🟡 Use with caution",
+            "red": "🔴 Calibration unavailable",
+        }.get(rel.status, rel.status)
+        
         rows.append({
             "grid_id": rel.region_id,
             "grid_lat": row["grid_lat"],
             "grid_lon": row["grid_lon"],
             "n_paired_obs": rel.n_paired_obs,
             "status": rel.status,
-            "status_label": _status_label(rel.status),
+            "status_label": status_label,
             "best_model": rel.best_model,
             "val_mae": rel.val_mae,
             "val_bias_pct": rel.val_bias_pct,
@@ -181,7 +254,4 @@ def build_reliability_table(
             "abstain": rel.abstain,
         })
 
-    result = pd.DataFrame(rows)
-    counts = result["status"].value_counts().to_dict()
-    log.info("Reliability table: %d regions | %s", len(result), counts)
-    return result
+    return pd.DataFrame(rows)
