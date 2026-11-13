@@ -34,19 +34,21 @@
   Candidate associations are exploratory observation opportunities, *not* confirmed ground-truth single fire events.
 
 ### Slide 4: SensorShift Calibration Engine
-- **Three Progressive Models Tested on Held-Out Future Data (Train: Nov 2022 -> Held-Out Test: Nov 2023):**
-  1. **Model A (Raw Identity Baseline):** MAE = 30.89 MW, Spearman $\rho = 0.4653$
-  2. **Model B (Global RMA Regression):** MAE = 27.22 MW, Spearman $\rho = 0.4653$
-  3. **Model C (Context-Aware Predictor-Side OLS):** MAE = **26.22 MW** (~15.1% reduction in MAE), Spearman $\rho = \mathbf{0.4674}$ (a modest +0.002 rank ordering improvement)
-- **Predictor Integrity:** Zero target leakage; uses only inference-time features ($FRP_{\text{VIIRS}}$, hotspot cluster density).
+- **Three Progressive Models Tested on Strict Nov 1–10 Comparative Period (Train: Nov 2022 [n=1,312] -> Held-Out Comparative: Nov 2023 [n=1,242]):**
+  1. **Model A (Raw Identity Baseline):** MAE = 30.93 MW, Spearman $\rho = 0.4654$
+  2. **Model B (Global RMA Regression):** Slope = 0.80528, Intercept = 1.42 MW, MAE = 27.25 MW, Spearman $\rho = 0.4654$
+  3. **Model C (Context-Aware Predictor-Side OLS):** MAE = **26.19 MW** (~15.3% reduction in MAE), Spearman $\rho = \mathbf{0.4674}$
+- **Predictor Integrity:** Zero target leakage; uses only inference-time features ($FRP_{\text{VIIRS}}$, hotspot cluster density, diurnal flag).
+- **Date-Grouped Cross-Validation:** Pooled Out-Of-Fold MAE across all 1,312 training predictions is **31.51 MW**.
 
 ### Slide 5: The Signature Innovation — The Reliability Gate
 - **The Philosophy:** *Knowing when to calibrate, and having the scientific integrity to abstain when evidence is insufficient.*
 - **The Traffic Light Gate:**
   - 🟢 **Green (Reliable in evaluated pilot conditions):** $\ge 50$ co-active cell-days, held-out validation bias $\le \pm 15\%$, and inputs in-domain.
-  - 🟡 **Yellow (Use with caution):** $20 \le N < 50$ co-active cell-days or borderline validation error.
+  - 🟡 **Yellow (Use with caution):** $20 \le N < 50$ co-active cell-days, borderline validation error, OR temporal subgroups with high validation bias (e.g. $\Delta t \le 5\text{ min}$ achieves 31.1% MAE drop but $+26.9\%$ bias $\rightarrow$ flagged YELLOW).
   - 🔴 **Red (Abstain):** $< 20$ cell-days or inputs outside historical training distribution ($Q_{0.01} - Q_{0.99}$).
 - **The Demonstration Climax:** Show a cell with insufficient data where the system refuses to produce a fictitious correction and preserves the raw record.
+
 
 ### Slide 6: Historical Fire Activity Calendar
 - **Transparent Multi-Layer View:**
