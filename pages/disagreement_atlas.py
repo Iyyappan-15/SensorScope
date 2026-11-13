@@ -72,13 +72,25 @@ def render() -> None:
             color_continuous_scale="RdBu",
             color_continuous_midpoint=0,
             range_color=[-5, 5],
-            center=dict(lat=30.8, lon=75.3),
-            zoom=6.8, opacity=0.8,
+            center=dict(lat=30.8, lon=76.0),
+            zoom=6.5, opacity=0.8,
             hover_data={"mean_d_count": ":.2f", "n_days": True},
             labels={"mean_d_count": "Mean Δ count (VIIRS−MODIS)", "n_days": "Active days"},
             **style_kw,
         )
-        fig.update_layout(height=430, margin=dict(l=0, r=0, t=10, b=0))
+        target_center = dict(lat=30.8, lon=76.0)
+        if hasattr(px, "scatter_map"):
+            fig.update_layout(
+                map=dict(center=target_center, zoom=6.5, style="carto-darkmatter"),
+                height=430, margin=dict(l=0, r=0, t=10, b=0),
+                uirevision="sensorscope_atlas_punjab_fixed",
+            )
+        else:
+            fig.update_layout(
+                mapbox=dict(center=target_center, zoom=6.5, style="carto-darkmatter"),
+                height=430, margin=dict(l=0, r=0, t=10, b=0),
+                uirevision="sensorscope_atlas_punjab_fixed",
+            )
         st.plotly_chart(fig, use_container_width=True)
         st.caption("Blue = VIIRS sees more | Red = MODIS sees more | White = agreement")
 

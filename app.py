@@ -68,10 +68,11 @@ def main():
     )
 
     st.sidebar.divider()
-    st.sidebar.markdown("**Study Region**  \nPunjab & Haryana, India")
-    st.sidebar.markdown("**Period**  \n2022–2024 (pilot)")
-    st.sidebar.markdown("**Sensors**  \nMODIS SP C6.1 · VIIRS S-NPP SP C2")
-    st.sidebar.markdown("**Data Source**  \n[NASA FIRMS](https://firms.modaps.eosdis.nasa.gov)")
+    st.sidebar.markdown("**Study Region**  \nPunjab & Haryana, India  \n*(73.8°E–77.5°E, 29.5°N–32.5°N)*")
+    st.sidebar.markdown("**Evaluation Period**  \nNov 1–10 (2022 Train · 2023 Eval)  \n*Strict Kharif Agricultural Peak*")
+    st.sidebar.markdown("**Archive Ingestion**  \n2022–2024 Pilot Records")
+    st.sidebar.markdown("**Sensors Harmonized**  \nMODIS SP C6.1 (Aqua)  \nVIIRS SP C2 (Suomi-NPP)")
+    st.sidebar.markdown("**Data Source**  \n[NASA FIRMS Standard Processing](https://firms.modaps.eosdis.nasa.gov)")
 
     # ── Route to pages ─────────────────────────────────────────────────────────────
     if page == "🏠 Overview":
