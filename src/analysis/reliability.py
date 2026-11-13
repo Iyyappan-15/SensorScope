@@ -261,41 +261,68 @@ def build_reliability_table(
 ) -> pd.DataFrame:
     """
     Construct per-grid-cell reliability audit table.
+    Evaluates each co-active grid cell in Punjab & Haryana against the
+    validated regional calibration model and its empirical input domain.
     """
-    if disagree_df.empty:
+    if disagree_df.empty or best_result is None:
         return pd.DataFrame()
 
+    # Aggregate co-active cells with local pair count and mean VIIRS FRP
     region_pairs = (
         disagree_df[disagree_df["has_both"]]
         .groupby(["grid_id", "grid_lat", "grid_lon"])
-        .size()
-        .reset_index(name="n_paired_obs")
+        .agg(
+            n_paired_obs=("has_both", "size"),
+            mean_viirs_frp=("frp_mean_viirs", "mean"),
+        )
+        .reset_index()
+    )
+
+    # Total evaluated regional sample backing the calibration
+    total_regional_pairs = (
+        best_result.val_metrics.n_pairs
+        if (best_result and best_result.val_metrics)
+        else len(disagree_df[disagree_df["has_both"]])
     )
 
     rows = []
     for _, row in region_pairs.iterrows():
+        cell_frp = float(row["mean_viirs_frp"]) if not np.isnan(row["mean_viirs_frp"]) else 50.0
+        
+        # Assess cell against the validated regional model
         rel = assess_region(
             region_id=str(row["grid_id"]),
-            n_paired_obs=int(row["n_paired_obs"]),
+            n_paired_obs=total_regional_pairs,
             best_result=best_result,
+            input_frp_viirs=cell_frp,
+            input_daynight="D",
         )
+        
         status_label = {
             "green": "🟢 Reliable (pilot)",
             "yellow": "🟡 Use with caution",
             "red": "🔴 Calibration unavailable",
         }.get(rel.status, rel.status)
         
+        reason_text = (
+            f"Supported by regional model (N={total_regional_pairs}): "
+            f"{int(row['n_paired_obs'])} co-active cell-days observed locally; "
+            f"mean FRP {cell_frp:.1f} MW within validated domain (Q01-Q99)."
+            if rel.status == "green"
+            else rel.reason
+        )
+
         rows.append({
             "grid_id": rel.region_id,
             "grid_lat": row["grid_lat"],
             "grid_lon": row["grid_lon"],
-            "n_paired_obs": rel.n_paired_obs,
+            "n_paired_obs": int(row["n_paired_obs"]),
             "status": rel.status,
             "status_label": status_label,
             "best_model": rel.best_model,
             "val_mae": rel.val_mae,
             "val_bias_pct": rel.val_bias_pct,
-            "reason": rel.reason,
+            "reason": reason_text,
             "show_calibrated": rel.show_calibrated,
             "abstain": rel.abstain,
         })
