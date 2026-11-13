@@ -62,11 +62,16 @@ def render() -> None:
             scatter_fn = getattr(px, "scatter_map", None) or px.scatter_mapbox
             map_kw = {"map_style": "carto-darkmatter"} if hasattr(px, "scatter_map") else {"mapbox_style": "carto-darkmatter"}
 
+            target_center = dict(lat=30.8, lon=76.0)
+            target_zoom = 6.5
+
             fig = scatter_fn(
                 sample,
                 lat="latitude", lon="longitude",
                 color="sensor",
                 color_discrete_map={"MODIS": "#FF6B35", "VIIRS": "#1E90FF"},
+                center=target_center,
+                zoom=target_zoom,
                 opacity=0.7,
                 hover_data={"frp_mw": ":.1f", "acq_date": True, "daynight": True},
                 title="Sampled Fire Hotspots — Punjab & Haryana, India",
@@ -75,8 +80,6 @@ def render() -> None:
             fig.update_traces(marker=dict(size=5))
 
             # Firmly anchor map center to Punjab/Haryana coordinates (30.8°N, 76.0°E) and set uirevision
-            target_center = dict(lat=30.8, lon=76.0)
-            target_zoom = 6.5
             if hasattr(px, "scatter_map"):
                 fig.update_layout(
                     map=dict(center=target_center, zoom=target_zoom, style="carto-darkmatter"),

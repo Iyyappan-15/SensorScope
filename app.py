@@ -75,20 +75,26 @@ def main():
     st.sidebar.markdown("**Data Source**  \n[NASA FIRMS Standard Processing](https://firms.modaps.eosdis.nasa.gov)")
 
     # ── Route to pages ─────────────────────────────────────────────────────────────
+    import importlib
     if page == "🏠 Overview":
         from pages import overview
+        importlib.reload(overview)
         overview.render()
     elif page == "🗺️ Disagreement Atlas":
         from pages import disagreement_atlas
+        importlib.reload(disagreement_atlas)
         disagreement_atlas.render()
     elif page == "🔬 Calibration Lab":
         from pages import calibration_lab
+        importlib.reload(calibration_lab)
         calibration_lab.render()
     elif page == "📅 Fire Activity Calendar":
         from pages import fire_calendar
+        importlib.reload(fire_calendar)
         fire_calendar.render()
     elif page == "📋 Methodology & Evidence":
         from pages import methodology
+        importlib.reload(methodology)
         methodology.render()
 
 
