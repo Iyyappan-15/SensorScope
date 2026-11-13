@@ -74,7 +74,7 @@ Rather than naively merging hotspots or applying a black-box model everywhere, *
 
 ## 🧪 Validated Empirical Results (Real NASA FIRMS Data)
 
-Tested on real NASA FIRMS Standard Processing data over **Punjab & Haryana, India** (agricultural burning case study, Nov 2022 train vs Nov 2023 held-out validation; rectangular bounding box `[73.8°E, 29.5°N, 77.5°E, 32.5°N]`):
+Tested on real NASA FIRMS Standard Processing data over **Punjab & Haryana, India** (agricultural burning pilot study, Nov 2022 train vs Nov 2023 held-out comparative evaluation; rectangular bounding box `[73.8°E, 29.5°N, 77.5°E, 32.5°N]`):
 
 - **Sensor-specific grid records:** 9,332
 - **Diurnal cell observations (`grid_id`, `acq_date`, `daynight`):** 6,772 (6,655 Day, 117 Night)
@@ -85,10 +85,11 @@ Tested on real NASA FIRMS Standard Processing data over **Punjab & Haryana, Indi
 | Model | Methodology | Train MAE | Held-Out Val MAE | Val Bias % | Spearman $\rho$ | Reliability Status |
 |---|---|---|---|---|---|:---:|
 | **Model A: Identity** | Raw VIIRS (No correction) | — | 30.8893 MW | +6.74% | 0.465330 | 🟢 Baseline |
-| **Model B: Global RMA** | Reduced Major Axis (Li et al. 2018) | 26.85 MW | 27.2156 MW | -10.38% | 0.465324 | 🟢 Supported |
-| **Model C: Context-Aware** | Predictor-side OLS (VIIRS FRP + Count) | 25.10 MW | **26.2188 MW** | **+8.37%** | **0.467365** | 🟢 **Best Model** |
+| **Model B: Global RMA** | Reduced Major Axis ($\text{slope}=0.80559$, $\text{intercept}=1.53\text{ MW}$) | 26.85 MW | 27.2156 MW | -10.38% | 0.465324 | 🟢 Supported |
+| **Model C: Context-Aware** | Predictor-side OLS (VIIRS FRP + Count + Night) | 25.10 MW | **26.2188 MW** | **+8.37%** | **0.467365** | 🟢 **Best Model** |
 
-> **Scientific Finding:** Context-aware calibration reduces held-out validation Mean Absolute Error from **30.89 MW down to 26.22 MW** on real NASA observations without any target leakage. Out-of-fold training residual envelopes achieve **93.3% empirical coverage** on untouched future test data.
+> **Scientific Finding:** Context-aware calibration reduces comparative evaluation period Mean Absolute Error from **30.89 MW down to 26.22 MW** on real NASA observations without any target leakage. In 5-fold date-grouped cross-validation, pooled out-of-fold MAE is **31.60 MW**. Out-of-fold training residual envelopes achieve **93.3% empirical coverage** on the 2023 comparative evaluation period.
+
 
 ---
 

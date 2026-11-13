@@ -88,3 +88,37 @@ $$\text{Sensor-specific rows} = 2 \times 2,560 + 488 + 3,724 = 5,120 + 488 + 3,7
 $$\text{Diurnal cell observations} = 2,560 + 488 + 3,724 = \mathbf{6,772} \quad [\checkmark]$$
 $$\text{Unique calendar cell-days} = 6,772 - 21 = \mathbf{6,751} \quad [\checkmark]$$
 
+---
+
+## 6. Sensitivity Sample Reproducibility Protocol
+
+The candidate association scan is a **5,000-record sample-based sensitivity experiment** (not a full-dataset census):
+- **Sampling Method:** Pseudo-random uniform sample without replacement from the sorted combined dataset (`load_all().sort_values("acq_datetime")`).
+- **Random Seed:** `random_state=42`.
+- **Sensor Split:** 1,013 MODIS detections (20.26%), 3,987 VIIRS detections (79.74%).
+- **Date Coverage:** 23 distinct acquisition dates spanning `2022-05-31` to `2023-11-30`.
+- **Geographic Coverage:** Latitudes $29.5028^\circ\text{N}$ to $32.4734^\circ\text{N}$, Longitudes $73.8079^\circ\text{E}$ to $77.4346^\circ\text{E}$ (bounding box coverage).
+- **Evaluation Reuse:** The **exact same 5,000 sampled records were reused** across all 9 parameter combinations ($\Delta t \in \{5, 15, 30\}\text{ min} \times \Delta r \in \{5, 11, 20\}\text{ km}$).
+
+---
+
+## 7. Calibration Observation Acquisition Timing Breakdown
+
+For the **2,560 co-active diurnal cell observations** used in calibration, acquisition timing differences between MODIS (Aqua) and VIIRS (Suomi-NPP) were empirically audited:
+
+| Metric | Method 1: Cell-Centroid Mean Acquisition $\Delta t$ | Method 2: Minimum Pairwise Detection $\Delta t$ |
+|:---|:---:|:---:|
+| **Median Difference** | **34.00 min** | **24.00 min** |
+| **Mean Difference** | **35.38 min** | **32.79 min** |
+| **Maximum Difference** | **199.00 min** | **199.00 min** |
+| **5th Percentile** | **1.00 min** | **1.00 min** |
+| **95th Percentile** | **82.00 min** | **82.00 min** |
+| **$\le 5$ minutes** | 319 / 2,560 (12.46%) | 385 / 2,560 (15.04%) |
+| **$\le 15$ minutes** | 727 / 2,560 (28.40%) | 756 / 2,560 (29.53%) |
+| **$\le 30$ minutes** | 1,212 / 2,560 (47.34%) | 1,341 / 2,560 (52.38%) |
+| **$\le 60$ minutes** | 2,326 / 2,560 (90.86%) | 2,374 / 2,560 (92.73%) |
+| **$> 60$ minutes** | 234 / 2,560 (9.14%) | 186 / 2,560 (7.27%) |
+
+*Physical Finding:* In agricultural burning, fires fluctuate significantly over 30–60 minutes. Because only $\approx 29.5\%$ of co-active cells are observed within 15 minutes, temporal separation between satellite passes is a major physical driver of cross-sensor divergence that cannot be eliminated by instrument calibration alone.
+
+
