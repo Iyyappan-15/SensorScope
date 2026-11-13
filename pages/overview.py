@@ -1,11 +1,13 @@
-"""Page 1 — Overview: summary statistics, sensor counts, AOI map."""
+"""Page 1 — Overview: summary statistics, sensor counts, large AOI map."""
 
+from __future__ import annotations
 import sys
 from pathlib import Path
 import streamlit as st
 import plotly.express as px
 import plotly.graph_objects as go
 import pandas as pd
+import numpy as np
 
 ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(ROOT / "src"))
@@ -14,15 +16,23 @@ from pages.data_loader import load_data, data_source_banner
 
 
 def render() -> None:
+    # ── 1. Page Title & Provenance Status ─────────────────────────────────────
     st.title("🛰️ SensorScope — Overview")
-    st.caption("Explainable MODIS–VIIRS Harmonization | Punjab & Haryana, India")
+    st.markdown(
+        '<div style="font-size:0.95rem; font-weight:700; color:#1E90FF; letter-spacing:1.5px; margin-bottom:8px;">'
+        'PUNJAB & HARYANA · INDIA &nbsp; | &nbsp; EXPLAINABLE MODIS–VIIRS HARMONIZATION'
+        '</div>',
+        unsafe_allow_html=True,
+    )
 
     data = load_data()
     data_source_banner(data["using_real_data"])
 
-    # ── Section 1: Audited Scientific Harmonization Population (Strict Nov 1–10) ──
+    # ── 2. Headline Scientific KPI Cards (Strict Nov 1–10 Kharif Peak) ────────
     st.markdown("### 🔬 Audited Scientific Harmonization Population *(Strict Nov 1–10 Window)*")
-    st.caption("Peer-audited dataset for Reduced Major Axis (RMA) calibration, date-blocked cross-validation, and Model C evaluation.")
+    st.caption(
+        "Peer-audited dataset for Reduced Major Axis (RMA) calibration, date-blocked cross-validation, and Model C evaluation."
+    )
 
     sc1, sc2, sc3, sc4, sc5 = st.columns(5)
     sc1.metric("2022 Training Pairs", "1,312", "Nov 1–10, 2022")
@@ -31,7 +41,7 @@ def render() -> None:
     sc4.metric("Active Dates", "10 + 9", "19 Distinct Passes")
     sc5.metric("Model C Held-Out MAE", "26.19 MW", "+8.1% Bias (Gate: Green)")
 
-    # ── Section 2: Complete Downloaded FIRMS Archive (Exploratory Ingestion) ────
+    # ── Collapsible Complete Ingestion Archive Metrics ────────────────────────
     with st.expander("📡 View Complete Raw Ingestion Archive Metrics (2022–2023 Archive)", expanded=False):
         st.caption("Full multi-month exploratory records downloaded from NASA FIRMS SP API across the pilot.")
         rc1, rc2, rc3, rc4, rc5 = st.columns(5)
@@ -43,74 +53,204 @@ def render() -> None:
 
     st.divider()
 
-    # ── Two columns: map + monthly chart ──────────────────────────────────────
-    left, right = st.columns([1.2, 1])
+    # ── 3. Large Full-Width Satellite Hotspot Explorer ─────────────────────────
+    st.markdown("## 🛰️ Satellite Hotspot Explorer")
+    st.caption("Large interactive map · Punjab and Haryana, India — Sub-pixel MODIS (1 km) vs VIIRS (375 m) detection comparison")
 
-    with left:
-        st.subheader("📍 Detection locations — Punjab & Haryana")
-        combined = data["combined"]
-        if not combined.empty:
-            # Geographic verification: verify all plotted points fall within Punjab & Haryana bbox
-            sample = combined.sample(min(3000, len(combined)), random_state=42)
-            lat_min, lat_max = float(sample["latitude"].min()), float(sample["latitude"].max())
-            lon_min, lon_max = float(sample["longitude"].min()), float(sample["longitude"].max())
-            in_bbox = bool(
-                ((sample["latitude"] >= 29.5) & (sample["latitude"] <= 32.5) &
-                 (sample["longitude"] >= 73.8) & (sample["longitude"] <= 77.5)).all()
+    combined = data["combined"]
+    if not combined.empty:
+        # Interactive Control Bar right above the map
+        ctrl1, ctrl2, ctrl3, ctrl4 = st.columns([1.2, 1.2, 1, 1])
+
+        with ctrl1:
+            sensor_selection = st.multiselect(
+                "Sensors Visible",
+                options=["MODIS", "VIIRS"],
+                default=["MODIS", "VIIRS"],
+                help="Toggle visibility of individual sensor detection layers.",
             )
 
-            scatter_fn = getattr(px, "scatter_map", None) or px.scatter_mapbox
-            map_kw = {"map_style": "carto-darkmatter"} if hasattr(px, "scatter_map") else {"mapbox_style": "carto-darkmatter"}
-
-            target_center = dict(lat=30.8, lon=76.0)
-            target_zoom = 6.5
-
-            fig = scatter_fn(
-                sample,
-                lat="latitude", lon="longitude",
-                color="sensor",
-                color_discrete_map={"MODIS": "#FF6B35", "VIIRS": "#1E90FF"},
-                center=target_center,
-                zoom=target_zoom,
-                opacity=0.7,
-                hover_data={"frp_mw": ":.1f", "acq_date": True, "daynight": True},
-                title="Sampled Fire Hotspots — Punjab & Haryana, India",
-                **map_kw,
+        with ctrl2:
+            period_selection = st.selectbox(
+                "Observation Window",
+                options=["Strict Kharif Peak (Nov 1–10)", "All Pilot Records (2022–2023)"],
+                index=0,
+                help="Strict Kharif Peak filters to the audited Nov 1–10 calibration window.",
             )
-            fig.update_traces(marker=dict(size=5))
 
-            # Firmly anchor map center to Punjab/Haryana coordinates (30.8°N, 76.0°E) and set uirevision
-            if hasattr(px, "scatter_map"):
-                fig.update_layout(
-                    map=dict(center=target_center, zoom=target_zoom, style="carto-darkmatter"),
-                    height=440,
-                    margin=dict(l=0, r=0, t=35, b=0),
-                    uirevision="sensorscope_punjab_fixed_v3",
-                    legend=dict(orientation="h", y=1.02, x=0.0),
+        with ctrl3:
+            daynight_selection = st.selectbox(
+                "Day / Night Pass",
+                options=["All Passes", "Day only (☀️ D)", "Night only (🌙 N)"],
+                index=0,
+                help="Filter by solar illumination at time of satellite overpass.",
+            )
+
+        with ctrl4:
+            show_grid_overlay = st.checkbox(
+                "Show 0.1° Grid Overlay",
+                value=False,
+                help="Display bounding lines of the 0.1° (~11 km) spatial analysis cells.",
+            )
+
+        # Apply filtering
+        df_map = combined.copy()
+
+        # Sensor filter
+        if sensor_selection:
+            df_map = df_map[df_map["sensor"].isin(sensor_selection)]
+        else:
+            df_map = df_map[df_map["sensor"].isin(["MODIS", "VIIRS"])]
+
+        # Day/Night filter
+        if "Day only" in daynight_selection:
+            df_map = df_map[df_map["daynight"] == "D"]
+        elif "Night only" in daynight_selection:
+            df_map = df_map[df_map["daynight"] == "N"]
+
+        # Observation window filter
+        if period_selection == "Strict Kharif Peak (Nov 1–10)":
+            df_map["month_val"] = pd.to_datetime(df_map["acq_date"]).dt.month
+            df_map["day_val"] = pd.to_datetime(df_map["acq_date"]).dt.day
+            df_map = df_map[(df_map["month_val"] == 11) & (df_map["day_val"] <= 10)]
+
+        # Sample for fluid browser responsiveness (up to 4,000 points)
+        sample_size = min(4000, len(df_map))
+        sample = df_map.sample(sample_size, random_state=42) if len(df_map) > sample_size else df_map
+
+        # Geographic bounds verification
+        lat_min, lat_max = float(sample["latitude"].min()), float(sample["latitude"].max())
+        lon_min, lon_max = float(sample["longitude"].min()), float(sample["longitude"].max())
+        in_bbox = bool(
+            ((sample["latitude"] >= 29.5) & (sample["latitude"] <= 32.5) &
+             (sample["longitude"] >= 73.8) & (sample["longitude"] <= 77.5)).all()
+        )
+
+        # Prepare hover information
+        sample = sample.copy()
+        sample["hover_txt"] = (
+            "<b>" + sample["sensor"] + " Active Hotspot</b><br>"
+            "<b>Acquisition:</b> " + sample["acq_date"].astype(str) + " " + sample["acq_time"].astype(str).str.zfill(4) + " UTC<br>"
+            "<b>FRP:</b> " + sample["frp_mw"].round(1).astype(str) + " MW<br>"
+            "<b>Confidence:</b> " + sample["confidence_raw"].astype(str) + "<br>"
+            "<b>Pass:</b> " + sample["daynight"].map({"D": "Day (☀️)", "N": "Night (🌙)"}).fillna("Unknown") + "<br>"
+            "<b>Coordinates:</b> " + sample["latitude"].round(3).astype(str) + "°N, " + sample["longitude"].round(3).astype(str) + "°E"
+        )
+
+        scatter_fn = getattr(px, "scatter_map", None) or px.scatter_mapbox
+        map_kw = {"map_style": "carto-darkmatter"} if hasattr(px, "scatter_map") else {"mapbox_style": "carto-darkmatter"}
+
+        target_center = dict(lat=30.8, lon=76.0)
+        target_zoom = 6.8
+
+        fig_map = scatter_fn(
+            sample,
+            lat="latitude",
+            lon="longitude",
+            color="sensor",
+            color_discrete_map={"MODIS": "#FF6B35", "VIIRS": "#1E90FF"},
+            center=target_center,
+            zoom=target_zoom,
+            opacity=0.75,
+            hover_name="sensor",
+            custom_data=["sensor", "acq_date", "acq_time", "frp_mw", "confidence_raw", "daynight"],
+            **map_kw,
+        )
+        fig_map.update_traces(
+            hovertemplate=
+            "<b>%{customdata[0]} Active Hotspot</b><br>"
+            "<b>Acquisition:</b> %{customdata[1]} %{customdata[2]} UTC<br>"
+            "<b>FRP:</b> %{customdata[3]:.1f} MW<br>"
+            "<b>Confidence:</b> %{customdata[4]}<br>"
+            "<b>Pass:</b> %{customdata[5]}<extra></extra>",
+            marker=dict(size=5.5),
+        )
+
+        # Optional 0.1° grid boundary overlay
+        if show_grid_overlay:
+            # Draw study bounding box outline [29.5, 32.5] x [73.8, 77.5]
+            lats = [29.5, 29.5, 32.5, 32.5, 29.5]
+            lons = [73.8, 77.5, 77.5, 73.8, 73.8]
+            box_trace_type = go.Scattermap if hasattr(px, "scatter_map") else go.Scattermapbox
+            fig_map.add_trace(
+                box_trace_type(
+                    lat=lats,
+                    lon=lons,
+                    mode="lines",
+                    line=dict(color="#fbc02d", width=2, dash="dash"),
+                    name="0.1° Grid AOI Bounding Box",
+                    hoverinfo="text",
+                    text="Punjab & Haryana Study AOI Boundary [29.5°–32.5°N, 73.8°–77.5°E]",
                 )
-            else:
-                fig.update_layout(
-                    mapbox=dict(center=target_center, zoom=target_zoom, style="carto-darkmatter"),
-                    height=440,
-                    margin=dict(l=0, r=0, t=35, b=0),
-                    uirevision="sensorscope_punjab_fixed_v3",
-                    legend=dict(orientation="h", y=1.02, x=0.0),
-                )
+            )
 
-            st.plotly_chart(fig, use_container_width=True)
+        # Explicit layout configuration with fixed center, desktop height ~550px, and cache override
+        layout_dict = dict(
+            center=target_center,
+            zoom=target_zoom,
+            style="carto-darkmatter",
+        )
+        if hasattr(px, "scatter_map"):
+            fig_map.update_layout(
+                map=layout_dict,
+                height=560,
+                margin=dict(l=0, r=0, t=30, b=0),
+                uirevision="sensorscope_explorer_punjab_v4",
+                legend=dict(
+                    orientation="h",
+                    y=1.03,
+                    x=0.0,
+                    bgcolor="rgba(14, 17, 23, 0.8)",
+                    bordercolor="#333",
+                    borderwidth=1,
+                ),
+            )
+        else:
+            fig_map.update_layout(
+                mapbox=layout_dict,
+                height=560,
+                margin=dict(l=0, r=0, t=30, b=0),
+                uirevision="sensorscope_explorer_punjab_v4",
+                legend=dict(
+                    orientation="h",
+                    y=1.03,
+                    x=0.0,
+                    bgcolor="rgba(14, 17, 23, 0.8)",
+                    bordercolor="#333",
+                    borderwidth=1,
+                ),
+            )
 
+        st.plotly_chart(fig_map, use_container_width=True)
+
+        # Map disclaimers, sampling disclosure and geographic integrity verification
+        cap_col1, cap_col2 = st.columns([1.5, 1])
+        with cap_col1:
+            st.caption(
+                f"📍 **Hotspot Sampling Disclosure:** Displaying {len(sample):,} active detections "
+                f"({'full filtered subset' if len(sample) == len(df_map) else f'sampled from {len(df_map):,} matching records'} for fluid rendering). "
+                "**Physical Note:** Point hotspot detections indicate satellite thermal pixel centroids, NOT physical fire perimeter boundaries."
+            )
+        with cap_col2:
             if in_bbox:
                 st.caption(
-                    "✅ **Geographic integrity verified:** All 3,000 plotted hotspots fall strictly within the "
-                    f"Punjab & Haryana bounding box [29.5°N–32.5°N, 73.8°E–77.5°E] (Lat: {lat_min:.2f}°–{lat_max:.2f}°N, Lon: {lon_min:.2f}°–{lon_max:.2f}°E)."
+                    "✅ **Geographic integrity verified:** 100% of plotted points strictly overlap "
+                    f"Punjab & Haryana [29.5°–32.5°N, 73.8°–77.5°E] (Lat: {lat_min:.2f}°–{lat_max:.2f}°N, Lon: {lon_min:.2f}°–{lon_max:.2f}°E)."
                 )
             else:
                 st.warning("⚠️ Warning: Some plotted points fall outside the configured bounding box!")
-        else:
-            st.info("No detection data loaded yet.")
+    else:
+        st.info("No detection data loaded yet.")
 
-    with right:
-        st.subheader("📊 Monthly Raw Ingestion Counts")
+    st.divider()
+
+    # ── 4. Historical Activity and Disagreement (Two Columns) ──────────────────
+    st.markdown("## 📈 Historical Activity and Disagreement")
+
+    col_hist_left, col_hist_right = st.columns([1.1, 1])
+
+    with col_hist_left:
+        st.subheader("📊 Monthly Raw Detections")
         st.caption("Complete multi-year exploratory archive showing seasonal agricultural burning cycles.")
         disagree = data["disagree"]
         if not disagree.empty and "year" in disagree.columns:
@@ -122,42 +262,87 @@ def render() -> None:
             monthly["period"] = monthly["year"].astype(str) + "-" + monthly["month"].astype(str).str.zfill(2)
             monthly = monthly.sort_values("period")
 
-            fig2 = go.Figure()
-            fig2.add_trace(go.Bar(
+            fig_monthly = go.Figure()
+            fig_monthly.add_trace(go.Bar(
                 x=monthly["period"], y=monthly["modis"],
                 name="MODIS Raw Detections", marker_color="#FF6B35", opacity=0.85,
             ))
-            fig2.add_trace(go.Bar(
+            fig_monthly.add_trace(go.Bar(
                 x=monthly["period"], y=monthly["viirs"],
                 name="VIIRS Raw Detections", marker_color="#1E90FF", opacity=0.85,
             ))
-            fig2.update_layout(
-                barmode="group", height=440,
-                xaxis_title="Month", yaxis_title="Reported Grid-Cell Detections",
-                legend=dict(orientation="h", y=1.02, x=0.0),
-                margin=dict(l=0, r=0, t=35, b=0),
+            fig_monthly.update_layout(
+                barmode="group",
+                height=380,
+                xaxis_title="Month",
+                yaxis_title="Reported Grid-Cell Detections",
+                legend=dict(orientation="h", y=1.05, x=0.0),
+                margin=dict(l=0, r=0, t=25, b=0),
                 plot_bgcolor="#0e1117", paper_bgcolor="#0e1117",
                 font_color="#fafafa",
             )
-            st.plotly_chart(fig2, use_container_width=True)
+            st.plotly_chart(fig_monthly, use_container_width=True)
             st.caption(
-                "🔥 **Seasonal burning dynamics:** The massive October–November peak corresponds to the post-monsoon "
-                "Kharif paddy stubble burning window. A minor peak occurs during April–May (Rabi wheat harvest). "
+                "🔥 **Seasonal burning dynamics:** The massive October–November peak corresponds to post-monsoon "
+                "Kharif paddy stubble burning. A secondary minor peak occurs in April–May (Rabi wheat harvest). "
                 "Scientific calibration is evaluated strictly on the November peak."
             )
         else:
             st.info("Processing disagreement data…")
 
-    # ── Reliability summary ────────────────────────────────────────────────────
+    with col_hist_right:
+        st.subheader("🗺️ Sensor Disagreement Breakdown")
+        st.caption("Cross-sensor reporting asymmetry across all 6,751 calendar cell-days.")
+        if not disagree.empty:
+            total_cells = len(disagree)
+            both_count = int(disagree["has_both"].sum())
+            m_only_count = int(disagree["modis_only"].sum())
+            v_only_count = int(disagree["viirs_only"].sum())
+
+            # Horizontal bar comparison
+            dis_df = pd.DataFrame({
+                "Category": ["Both Sensors Active", "VIIRS Only (MODIS Missed)", "MODIS Only (VIIRS Missed)"],
+                "Count": [both_count, v_only_count, m_only_count],
+                "Share": [both_count / total_cells * 100, v_only_count / total_cells * 100, m_only_count / total_cells * 100],
+                "Color": ["#4caf50", "#1E90FF", "#FF6B35"],
+            })
+
+            fig_dis = go.Figure()
+            fig_dis.add_trace(go.Bar(
+                y=dis_df["Category"],
+                x=dis_df["Count"],
+                orientation="h",
+                marker=dict(color=dis_df["Color"]),
+                text=dis_df.apply(lambda r: f"{r['Count']:,} ({r['Share']:.1f}%)", axis=1),
+                textposition="auto",
+            ))
+            fig_dis.update_layout(
+                height=380,
+                xaxis_title="Grid-Cell Observations",
+                yaxis=dict(autorange="reversed"),
+                margin=dict(l=0, r=0, t=25, b=0),
+                plot_bgcolor="#0e1117", paper_bgcolor="#0e1117",
+                font_color="#fafafa",
+            )
+            st.plotly_chart(fig_dis, use_container_width=True)
+            st.caption(
+                "⚡ **Sub-pixel sensitivity asymmetry:** VIIRS reports fire in 3,724 cells where MODIS reports none (55.0%), "
+                "driven by its 375 m pixel resolving weak agricultural burns that dilute across MODIS's 1 km footprint."
+            )
+        else:
+            st.info("Processing disagreement data…")
+
     st.divider()
-    st.subheader("🔒 Calibration Reliability Summary")
+
+    # ── 5. Calibration Reliability Summary & Limitations ──────────────────────
+    st.markdown("## 🔒 Calibration Reliability")
     st.caption("Evidence-based decision gate determining when calibrated estimates are scientifically justified.")
 
     # Executive gate status cards
     gc1, gc2, gc3 = st.columns(3)
     with gc1:
         st.markdown(
-            '<div style="background:#1b3a24; border-left:4px solid #4caf50; padding:10px 14px; border-radius:6px;">'
+            '<div style="background:#1b3a24; border-left:4px solid #4caf50; padding:12px 16px; border-radius:6px;">'
             '<strong style="color:#4caf50; font-size:1.0rem;">🟢 Reliable (Pilot Model)</strong><br>'
             '<span style="font-size:0.85rem; color:#cfd8dc;">'
             '<strong>Model C (Context OLS)</strong> is fully supported across Punjab & Haryana. '
@@ -167,7 +352,7 @@ def render() -> None:
         )
     with gc2:
         st.markdown(
-            '<div style="background:#3a3014; border-left:4px solid #ff9800; padding:10px 14px; border-radius:6px;">'
+            '<div style="background:#3a3014; border-left:4px solid #ff9800; padding:12px 16px; border-radius:6px;">'
             '<strong style="color:#ff9800; font-size:1.0rem;">🟡 Caution (Subgroup Alert)</strong><br>'
             '<span style="font-size:0.85rem; color:#cfd8dc;">'
             'Subgroups with timing difference Δt ≤ 5 min exhibit +26.9% validation bias (exceeding ±15%), '
@@ -177,7 +362,7 @@ def render() -> None:
         )
     with gc3:
         st.markdown(
-            '<div style="background:#3a1818; border-left:4px solid #f44336; padding:10px 14px; border-radius:6px;">'
+            '<div style="background:#3a1818; border-left:4px solid #f44336; padding:12px 16px; border-radius:6px;">'
             '<strong style="color:#f44336; font-size:1.0rem;">🔴 Abstain (Safety Guard)</strong><br>'
             '<span style="font-size:0.85rem; color:#cfd8dc;">'
             'Triggered when N < 20 pairs or FRP > 279.18 MW (99th percentile). '
