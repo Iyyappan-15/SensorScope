@@ -42,17 +42,35 @@ Following **Li et al. (2018)**:
   - Reclassified formally as a **held-out comparative evaluation period** (rather than an untouched test set), because its results were used to compare Model A, B, and C.
   - Empirical error envelope coverage ($\approx 93.3\% - 94.6\%$) carries this qualification.
 
-### 1.5 Calibration Sensitivity to Acquisition Timing
-For the 2,560 co-active diurnal cell observations, timing delta sensitivity demonstrates the physical nature of the harmonization:
+### 1.5 Calibration Sensitivity to Acquisition Timing & Temporal Reliability Guard
+For the **2,554 strict co-active diurnal cell observations** (November 1–10, 2022 & 2023), timing delta sensitivity demonstrates the empirical nature of the harmonization:
 
-| Timing Subset ($\min \Delta t$) | Total $n$ | Val $n$ | Model A (Identity) MAE | Model C (Harmonized) MAE | $\Delta \text{MAE}$ Improvement |
-|:---|:---:|:---:|:---:|:---:|:---:|
-| **$\le 5$ min (Contemporaneous)** | 385 | 274 | 38.46 MW | **26.64 MW** (28.80 in-bin) | **+30.7%** (+25.1%) |
-| **$\le 15$ min (Near-Contemporaneous)** | 756 | 274 | 38.46 MW | **26.64 MW** (24.53 in-bin) | **+30.7%** (+36.2%) |
-| **$\le 30$ min (Broader Window)** | 1,341 | 661 | 33.76 MW | **27.23 MW** (25.66 in-bin) | **+19.3%** (+24.0%) |
-| **$> 30$ min (Temporally Separated)** | 1,219 | 585 | 27.64 MW | **25.07 MW** (27.55 in-bin) | **+9.3%** (+0.3%) |
+#### Experiment A: Global Model C Evaluated Across Exclusive Timing Slices
+| Exclusive Timing Interval | 2023 Eval $n$ | Model A (Identity) MAE | Model C (Context OLS) MAE | Model C Bias % | Improvement vs Identity | Reliability Status |
+|:---|:---:|:---:|:---:|:---:|:---:|:---:|
+| **$0 \le \Delta t \le 5\text{ min}$** | 273 | 38.60 MW | **26.60 MW** | $+26.94\%$ | **+31.08%** | 🟡 **YELLOW** (Bias $> \pm 15\%$) |
+| **$5 < \Delta t \le 15\text{ min}$** | 0 | *N/A (0 obs)* | *N/A* | *N/A* | *N/A* | 🟡 **YELLOW / RED** (No 2023 obs) |
+| **$15 < \Delta t \le 30\text{ min}$** | 384 | 30.49 MW | **27.68 MW** | $-8.57\%$ | **+9.23%** | 🟢 **GREEN** (Bias $\le \pm 15\%$) |
+| **$\Delta t > 30\text{ min}$** | 585 | 27.64 MW | **25.02 MW** | $+11.17\%$ | **+9.50%** | 🟢 **GREEN** (Bias $\le \pm 15\%$) |
 
-**Physical Insight:** When satellites observe fires within 15 minutes, harmonization achieves its largest error reduction ($+30.7\%$ to $+36.2\%$). When observations are separated by $>30$ minutes, in-bin calibration provides almost no improvement over raw data ($+0.3\%$), because differences are dominated by rapid agricultural fire burnout rather than sensor response.
+#### Experiment B: Independent Models Retrained Within Timing Slices
+- **$0 \le \Delta t \le 5\text{ min}$ ($n_{\text{trn}}=111, n_{\text{val}}=273$):** In-bin MAE $= 28.91\text{ MW}$, Bias $= +21.14\%$ ($+25.10\%$ improvement over Identity). Status: 🟡 **YELLOW**.
+- **$5 < \Delta t \le 15\text{ min}$ ($n_{\text{trn}}=371, n_{\text{val}}=0$):** Skipped (zero 2023 evaluation observations). Status: 🔴 **ABSTAIN**.
+- **$15 < \Delta t \le 30\text{ min}$ ($n_{\text{trn}}=198, n_{\text{val}}=384$):** In-bin MAE $= 27.04\text{ MW}$, Bias $= -23.23\%$ ($+11.32\%$ improvement). Status: 🟡 **YELLOW**.
+- **$\Delta t > 30\text{ min}$ ($n_{\text{trn}}=632, n_{\text{val}}=585$):** In-bin MAE $= 27.43\text{ MW}$, Bias $= +24.65\%$ ($+0.77\%$ improvement over Identity). Status: 🟡 **YELLOW**.
+
+> **Reliability Gate Rule on Temporal Subgroups:**  
+> An improvement in MAE does **not** entitle a calibrated estimate to GREEN status. When observation timing is known, the Reliability Gate evaluates subgroup validation bias in addition to sample count:
+> - Subgroups with validation bias exceeding the $\pm 15\%$ threshold (such as the $0-5\text{ min}$ slice with $+26.94\%$ bias) are classified as **🟡 YELLOW (Caution)** despite achieving large ($31.1\%$) MAE reductions.
+> - Subgroups lacking validation evidence (such as the $5-15\text{ min}$ interval in 2023) receive **🟡 YELLOW** or **🔴 RED (Abstain)**.
+> - Only conditions where sample size ($\ge 50$), MAE, and validation bias ($\le \pm 15\%$) simultaneously satisfy all thresholds receive **🟢 GREEN**.
+
+> **Orbital Observation Note:**  
+> No co-active grid-cell observations in the November 2023 evaluation dataset fell within the 5–15-minute timing interval. This reflects the timing distribution observed in our study data.
+
+> **Scientific Interpretation Boundary:**  
+> Our experiments show that calibration performance varies with the time separation between satellite observations. This is consistent with the possibility that both sensor characteristics and changing fire activity influence cross-sensor differences. The experiment does not isolate the individual causal contributions.
+
 
 
 

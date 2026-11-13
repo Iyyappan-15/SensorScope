@@ -130,3 +130,34 @@ def test_no_target_leakage_in_model_context():
     for fname in res.feature_names:
         assert "modis" not in fname.lower()
     assert res.feature_names == ["frp_viirs", "count_viirs", "is_night"]
+
+
+def test_temporal_subgroup_reliability_check():
+    """Verify Reliability Gate flags YELLOW when subgroup validation bias exceeds 15%."""
+    from analysis.calibration import CalibrationResult, CalibrationMetrics
+    mock_res = CalibrationResult(
+        model_name="Context-aware calibration",
+        trained=True,
+        reason="Model C evaluation",
+        val_metrics=CalibrationMetrics(
+            n_pairs=1242, mae=26.19, rmse=38.5, mean_bias=2.1,
+            mean_bias_pct=8.06, spearman_r=0.467, model_name="Context-aware", split="val"
+        )
+    )
+
+    # Overall model without timing constraint receives GREEN
+    rel_global = assess_region("overall", n_paired_obs=100, best_result=mock_res)
+    assert rel_global.status == "green"
+    
+    # Subgroup with dt <= 5 min has +26.9% bias -> must be downgraded to YELLOW
+    rel_timing_5 = assess_region("cell_01", n_paired_obs=100, best_result=mock_res, timing_dt_min=3.0)
+    assert rel_timing_5.status == "yellow"
+    assert "Temporal subgroup caveat" in rel_timing_5.reason
+    assert rel_timing_5.show_calibrated is True
+    assert rel_timing_5.show_warning is True
+    
+    # Subgroup with 5 < dt <= 15 min has 0 eval obs in 2023 -> must be YELLOW
+    rel_timing_10 = assess_region("cell_02", n_paired_obs=100, best_result=mock_res, timing_dt_min=10.0)
+    assert rel_timing_10.status == "yellow"
+    assert "zero co-active cell observations exist" in rel_timing_10.reason
+

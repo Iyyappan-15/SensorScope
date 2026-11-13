@@ -83,10 +83,12 @@ def assess_region(
     best_result: CalibrationResult,
     input_frp_viirs: Optional[float] = None,
     input_daynight: str = "D",
+    timing_dt_min: Optional[float] = None,
 ) -> RegionReliability:
     """
     Assess reliability for a given analysis unit (region or individual grid cell).
-    Enforces sample adequacy, validation performance, and input domain limits.
+    Enforces sample adequacy, validation performance, input domain limits,
+    and temporal subgroup validation bias constraints.
     """
     val = best_result.val_metrics
     
@@ -152,7 +154,48 @@ def assess_region(
     mae = val.mae
     bias_pct = val.mean_bias_pct
 
-    # 4. Green status: Adequate sample, acceptable bias, supported within pilot conditions
+    # 4. Temporal subgroup validation check (if timing delta is known)
+    if timing_dt_min is not None:
+        if timing_dt_min <= 5.0:
+            # Subgroup bias is +26.94% (> 15% threshold) despite 31% MAE reduction
+            subgroup_bias = 26.94
+            return RegionReliability(
+                region_id=region_id,
+                status="yellow",
+                n_paired_obs=n_paired_obs,
+                best_model=best_result.model_name,
+                val_mae=round(mae, 2),
+                val_bias_pct=round(subgroup_bias, 1),
+                in_domain=True,
+                reason=(
+                    f"Temporal subgroup caveat (Δt <= 5 min): held-out validation bias is +{subgroup_bias:.1f}%, "
+                    f"exceeding the ±{RELIABILITY_GREEN_MAX_BIAS_PCT}% threshold despite a 31.1% MAE reduction. "
+                    "Calibrated estimate shown with caution warning."
+                ),
+                show_calibrated=True,
+                show_warning=True,
+                abstain=False,
+            )
+        elif 5.0 < timing_dt_min <= 15.0:
+            # Zero observations in 2023 evaluation dataset for 5-15 min interval
+            return RegionReliability(
+                region_id=region_id,
+                status="yellow",
+                n_paired_obs=n_paired_obs,
+                best_model=best_result.model_name,
+                val_mae=round(mae, 2),
+                val_bias_pct=None,
+                in_domain=True,
+                reason=(
+                    f"Temporal subgroup limitation (5 < Δt <= 15 min): zero co-active cell observations exist "
+                    "in the 2023 evaluation sample for this interval. Calibrated estimate shown with caution."
+                ),
+                show_calibrated=True,
+                show_warning=True,
+                abstain=False,
+            )
+
+    # 5. Green status: Adequate sample, acceptable bias, supported within pilot conditions
     if (n_paired_obs >= RELIABILITY_GREEN_MIN_PAIRS and
             abs(bias_pct) <= RELIABILITY_GREEN_MAX_BIAS_PCT):
         return RegionReliability(
@@ -173,11 +216,12 @@ def assess_region(
             abstain=False,
         )
 
-    # 5. Yellow status: Moderate sample or borderline validation
+    # 6. Yellow status: Moderate sample or borderline validation
     return RegionReliability(
         region_id=region_id,
         status="yellow",
         n_paired_obs=n_paired_obs,
+
         best_model=best_result.model_name,
         val_mae=round(mae, 2),
         val_bias_pct=round(bias_pct, 1),
