@@ -1,0 +1,42 @@
+# === SECRETS — NEVER COMMIT ===
+.env
+*.env.local
+
+# === DATA — TOO LARGE FOR GIT ===
+data/raw/
+data/processed/
+*.parquet
+*.duckdb
+*.db
+
+# === PYTHON ===
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+*.egg-info/
+dist/
+build/
+.eggs/
+*.egg
+venv/
+env/
+.venv/
+
+# === STREAMLIT ===
+.streamlit/secrets.toml
+
+# === OS ===
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# === EDITORS ===
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# === LOGS ===
+*.log
+logs/
