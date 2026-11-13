@@ -48,16 +48,18 @@ def render() -> None:
         combined = data["combined"]
         if not combined.empty:
             sample = combined.sample(min(3000, len(combined)), random_state=42)
-            fig = px.scatter_mapbox(
+            scatter_fn = getattr(px, "scatter_map", None) or px.scatter_mapbox
+            style_kw = {"map_style": "carto-darkmatter"} if hasattr(px, "scatter_map") else {"mapbox_style": "carto-darkmatter"}
+            fig = scatter_fn(
                 sample,
                 lat="latitude", lon="longitude",
                 color="sensor",
                 color_discrete_map={"MODIS": "#FF6B35", "VIIRS": "#1E90FF"},
                 size_max=6, zoom=6,
-                mapbox_style="carto-darkmatter",
                 opacity=0.6,
                 hover_data={"frp_mw": ":.1f", "acq_date": True, "daynight": True},
                 title="Sampled fire hotspots",
+                **style_kw,
             )
             fig.update_layout(height=420, margin=dict(l=0, r=0, t=30, b=0))
             st.plotly_chart(fig, use_container_width=True)

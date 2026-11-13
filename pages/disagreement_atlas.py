@@ -61,7 +61,10 @@ def render() -> None:
             n_days=("d_count", "count"),
         ).reset_index()
 
-        fig = px.scatter_mapbox(
+        scatter_fn = getattr(px, "scatter_map", None) or px.scatter_mapbox
+        style_kw = {"map_style": "carto-darkmatter"} if hasattr(px, "scatter_map") else {"mapbox_style": "carto-darkmatter"}
+
+        fig = scatter_fn(
             map_data,
             lat="grid_lat", lon="grid_lon",
             color="mean_d_count",
@@ -69,10 +72,10 @@ def render() -> None:
             color_continuous_scale="RdBu",
             color_continuous_midpoint=0,
             range_color=[-5, 5],
-            mapbox_style="carto-darkmatter",
             zoom=6, opacity=0.8,
             hover_data={"mean_d_count": ":.2f", "n_days": True},
             labels={"mean_d_count": "Mean Δ count (VIIRS−MODIS)", "n_days": "Active days"},
+            **style_kw,
         )
         fig.update_layout(height=430, margin=dict(l=0, r=0, t=10, b=0))
         st.plotly_chart(fig, use_container_width=True)
