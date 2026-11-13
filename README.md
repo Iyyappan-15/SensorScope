@@ -140,5 +140,9 @@ pytest tests -v
 ---
 
 ## ⚖️ License & AI Disclosure
-- **License:** MIT License. See [LICENSE](LICENSE).
-- **AI Tool Disclosure:** Google Antigravity / Gemini was used for code scaffolding, testing, and documentation formatting; all scientific logic, data handling, and models were reviewed and validated by the team.
+- **Software License:** MIT License. See [LICENSE](LICENSE). This license applies strictly to the SensorScope software source code written by the team.
+- **Data Attribution:** NASA FIRMS active fire data products (MODIS Collection 6.1 SP and VIIRS Collection 2 SP) are provided under NASA Open Data policies and retain their respective NASA EOSDIS public domain attribution and terms of use.
+- **AI Tool Disclosure:** In accordance with NASA Space Apps Challenge disclosure rules, AI tools were utilized during project preparation and development:
+  - **ChatGPT (OpenAI):** Utilized for challenge background research, literature analysis (*Li et al. 2018*, *Sofiev & Kouznetsov 2026*), competitive review, and proposal synthesis.
+  - **Google Antigravity / Gemini (DeepMind):** Utilized as an agentic coding assistant for code scaffolding, automated testing, data pipeline integration, and documentation formatting.
+  - All scientific claims, mathematical definitions, data processing logic, and validation results were independently reviewed, audited, and verified by the team.

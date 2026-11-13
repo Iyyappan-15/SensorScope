@@ -24,10 +24,14 @@ Following **Li et al. (2018)**:
 - **Model C (Context-Aware OLS):**
   $$\widehat{FRP}_{\text{MODIS, ref}} = \beta_0 + \beta_1 FRP_{\text{VIIRS}} + \beta_2 \sin\left(\frac{2\pi m}{12}\right) + \beta_3 \cos\left(\frac{2\pi m}{12}\right) + \beta_4 \mathbb{I}_{\text{Night}}$$
 
-## 2. Reliability Gate Decision Rules
+## 3. License & AI Tool Disclosure
 
-$$\text{Status}(\mathcal{C}) = \begin{cases} 
-\text{GREEN (Reliable)}, & \text{if } N_{\text{pairs}} \ge 50 \text{ and } |\text{Bias}_{\%}| \le 15\% \\
-\text{YELLOW (Caution)}, & \text{if } 20 \le N_{\text{pairs}} < 50 \text{ or } 15\% < |\text{Bias}_{\%}| \le 25\% \\
-\text{RED (Abstain)}, & \text{if } N_{\text{pairs}} < 20 \text{ or out-of-domain}
-\end{cases}$$
+### Software License & Data Terms
+- **Software License:** MIT License. Applies strictly to the SensorScope application source code.
+- **NASA Data Terms:** NASA FIRMS active fire datasets retain their respective NASA Open Data Terms of Use and scientific public-domain attribution.
+
+### AI Tool Usage Disclosure
+In accordance with NASA Space Apps Challenge disclosure guidelines:
+- **ChatGPT (OpenAI):** Used for background challenge exploration, literature search and analysis (Li et al. 2018, Sofiev & Kouznetsov 2026), and proposal drafting.
+- **Google Antigravity / Gemini:** Used as an agentic AI coding environment for repository scaffolding, unit test implementation, and documentation formatting.
+- All code, data handling, and scientific conclusions were audited, reviewed, and empirically verified by the team.

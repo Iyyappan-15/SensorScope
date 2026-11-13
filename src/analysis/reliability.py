@@ -196,11 +196,13 @@ def assess_region(
 
 def compute_empirical_error_envelope(
     y_pred: np.ndarray,
-    e05: float = -48.53,
-    e95: float = 77.36,
+    e05: float = -52.68,
+    e95: float = 77.65,
 ) -> tuple[np.ndarray, np.ndarray]:
     """
-    Construct descriptive empirical error envelopes from out-of-fold training residuals.
+    Construct descriptive empirical error envelopes from date-blocked out-of-fold training residuals.
+    Computed via 5-fold GroupKFold by acquisition date on 1,314 training cell-days (e05 = -52.68 MW, e95 = 77.65 MW).
+    Evaluated on 1,246 untouched held-out November 2023 cell-days: 1,179/1,246 observations fall within envelope (94.6% coverage).
     Lower bound is clipped at 0.0 MW (FRP cannot be physically negative).
     """
     y_pred = np.asarray(y_pred, dtype=float)

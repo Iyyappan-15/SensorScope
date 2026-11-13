@@ -23,8 +23,8 @@
     - **9,332** sensor-specific grid records
     - **6,772** distinct active cell-days ($0.1^\circ$ geographic grid)
     - **2,560** co-active cell-days
-    - **3,724** VIIRS-only cell-days vs. **488** MODIS-only cell-days
-- **The Takeaway:** VIIRS detects widespread low-intensity agricultural stubble fires ($FRP < 10\text{ MW}$) that MODIS's 1 km footprint averages out.
+    - **3,724** VIIRS-only active grid-cell-days in our study dataset vs. **488** MODIS-only active grid-cell-days
+- **The Takeaway:** We identified 3,724 VIIRS-only active grid-cell-days in our study dataset, highlighting differences between the two satellite products. This reflects differences in pixel dimensions (375 m vs. 1 km nominal), observation times, smoke/atmospheric attenuation, and detection thresholds, rather than ground-truth confirmation that all were confirmed fires or that MODIS "missed" them.
 
 ### Slide 3: Cross-Sensor Association & Orbital Physics
 - **The Sensitivity Finding:**
@@ -37,7 +37,7 @@
 - **Three Progressive Models Tested on Held-Out Future Data (Train: Nov 2022 -> Held-Out Test: Nov 2023):**
   1. **Model A (Raw Identity Baseline):** MAE = 30.89 MW, Spearman $\rho = 0.4653$
   2. **Model B (Global RMA Regression):** MAE = 27.22 MW, Spearman $\rho = 0.4653$
-  3. **Model C (Context-Aware Predictor-Side OLS):** MAE = **26.22 MW**, Spearman $\rho = \mathbf{0.4674}$
+  3. **Model C (Context-Aware Predictor-Side OLS):** MAE = **26.22 MW** (~15.1% reduction in MAE), Spearman $\rho = \mathbf{0.4674}$ (a modest +0.002 rank ordering improvement)
 - **Predictor Integrity:** Zero target leakage; uses only inference-time features ($FRP_{\text{VIIRS}}$, hotspot cluster density).
 
 ### Slide 5: The Signature Innovation — The Reliability Gate

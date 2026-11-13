@@ -2,10 +2,12 @@
 
 **Project Name:** SensorScope  
 **Document Date:** November 13, 2026  
-**Status:** Pre-Hackathon Inventory & Disclosure  
+**Status:** ELIGIBILITY CLEARANCE PENDING  
 
 ## 1. Context & Purpose
 In accordance with NASA Space Apps Challenge transparency guidelines, this document explicitly records all code, datasets, tests, and materials created or staged prior to the official event start on November 14, 2026, at 9:00 AM local time.
+
+**Status Note:** Pre-event development and assets are fully disclosed. Eligibility for reuse in the competition has NOT been confirmed by the organizers and remains strictly **ELIGIBILITY CLEARANCE PENDING** until written guidance is received.
 
 No commit timestamps, records, or file origins have been backdated, concealed, or misrepresented.
 
