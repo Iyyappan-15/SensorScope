@@ -16,6 +16,11 @@ st.set_page_config(
 # ── CSS theme ──────────────────────────────────────────────────────────────────
 st.markdown("""
 <style>
+/* Hide Streamlit auto-generated page navigation to preserve custom SensorScope nav */
+[data-testid="stSidebarNav"], .css-1dp5vir {
+    display: none !important;
+}
+
 /* Reliability status badges */
 .badge-green  { background:#1b7a3e; color:#fff; padding:4px 10px;
                 border-radius:12px; font-weight:600; font-size:0.85rem; }
@@ -40,7 +45,14 @@ st.markdown("""
 
 # ── Sidebar ────────────────────────────────────────────────────────────────────
 def main():
-    st.sidebar.image("https://firms.modaps.eosdis.nasa.gov/img/firms_logo.png", width=140)
+    st.sidebar.markdown(
+        '<div style="background:linear-gradient(135deg, #0b3d91 0%, #1a1a3a 100%); '
+        'color:white; padding:10px 14px; border-radius:8px; font-weight:700; '
+        'font-size:1.0rem; text-align:center; margin-bottom:12px; border:1px solid #1E90FF;">'
+        '🛰️ NASA FIRMS · SensorScope'
+        '</div>',
+        unsafe_allow_html=True,
+    )
     st.sidebar.title("🛰️ SensorScope")
     st.sidebar.caption("Explainable MODIS–VIIRS Harmonization")
 

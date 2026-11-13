@@ -178,15 +178,15 @@ Cyclic month encoding preserves seasonal continuity.
 ### Reliability gate
 The reliability gate operates independently of model training.
 A trained model may still receive a **red** (abstain) status if:
-- Fewer than {min_yellow} paired observations exist for the target region
-- Validation bias exceeds ±{max_bias_pct}%
+- Fewer than 20 paired observations exist for the target region
+- Validation bias exceeds ±15%
 - Input conditions fall outside the training distribution
 
 | Status | Condition | Action |
 |--------|-----------|--------|
-| 🟢 Green | ≥{min_green} pairs AND validation bias ≤±{max_bias}% | Show calibrated estimate |
-| 🟡 Yellow | {min_yellow}–{min_green} pairs OR borderline validation | Show with caution warning |
-| 🔴 Red | <{min_yellow} pairs OR out-of-domain | Show raw data only |
+| 🟢 Green | ≥50 pairs AND validation bias ≤±15% | Show calibrated estimate |
+| 🟡 Yellow | 20–50 pairs OR borderline validation | Show with caution warning |
+| 🔴 Red | <20 pairs OR out-of-domain | Show raw data only |
 
 ### Calibration scope
 The calibration operates on **paired grid-cell samples** where both sensors reported activity.
@@ -196,9 +196,7 @@ It does **not** correct:
 - Coverage gaps
 
 Unmatched detections are shown as a separate layer, not corrected.
-        """.format(
-            min_yellow=20, min_green=50, max_bias_pct=15, max_bias="15"
-        ))
+        """)
 
     with tab4:
         st.markdown("""
