@@ -66,6 +66,8 @@ SensorScope has undergone an independent, evidence-based read-only readiness aud
 | **Strict Pooled OOF MAE** | **31.5128 MW** | $\frac{1}{1312} \sum \|y_i - \hat{y}_i^{\text{OOF}}\|$ across 5 date-grouped folds | Direct sample-weighted pooled error across all concatenated folds. | **PASS** |
 | **Exclusive Timing Distribution** | 384 / 371 / 582 / 1,217 | Minimum pairwise detection delta $\Delta t$ across 2,554 pairs | $0-5\text{m}$: 384; $>5-15\text{m}$: 371; $>15-30\text{m}$: 582; $>30\text{m}$: 1,217. | **PASS** |
 | **2023 Timing Subgroup Absence** | **0 obs in (5, 15] min** | Evaluated on all 1,242 pairs in 2023 | Genuine observation timing occurrence in study sample; verified. | **PASS** |
+| **Temporal Independence Audit** | **Single Overpass (2023-11-05)** | Date breakdown of 273 eval obs in $0-5\text{ min}$ interval | All 273 cells occurred on `2023-11-05` (08:15 UTC). **Individual spatial cells from a single satellite overpass are not independent temporal validation events.** | **PASS** |
+
 
 ---
 
@@ -106,12 +108,14 @@ SensorScope has undergone an independent, evidence-based read-only readiness aud
 
 1. **Current Branch & Commit:**
    - Active Branch: `master`
-   - HEAD Commit: `c8789c1` (*docs & gate: add temporal subgroup validation bias check to reliability gate and refine orbital observation wording*)
+   - HEAD Commit: `fa82d67` (*docs: finalize independent project readiness audit report*)
+   - Pre-Event Checkpoint Commit: `e59bb49` (*branch `pre-event-mvp-checkpoint` preserved*)
    - Working Tree: **Clean** (no uncommitted or unstaged changes).
 2. **Credential Scanning:**
-   - Git log diff scan (`git log -p | Select-String "MAP_KEY", "<hex_key>"`) confirmed:
-     - The real NASA FIRMS API key has **NEVER been committed** to Git history.
-     - Only template placeholders (`your_key_here`, `your_map_key_here`) exist in tracked files.
+   - Git log diff audit confirmed:
+     - **No credentials found in Git history.**
+     - The NASA FIRMS API key has **NEVER been committed**.
+     - Only template placeholders (`your_key_here`, `your_map_key_here`) exist in tracked `.env.example` files.
 3. **Ignore Configuration (`.gitignore`):**
    - Verified that `.env`, `*.env.local`, `data/raw/`, `data/processed/`, and `logs/` are strictly ignored.
 4. **Pre-Event Checkpoint Branch:**
@@ -123,6 +127,7 @@ SensorScope has undergone an independent, evidence-based read-only readiness aud
    - Accurately disclosed across `README.md` and `docs/PRESENTATION_NARRATIVE.md`: ChatGPT (literature exploration, proposal drafting) and Google Antigravity / Gemini (agentic coding assistant, test execution, documentation).
 7. **Security Verdict:** **PASS**.
 
+
 ---
 
 ## F. Outstanding Issues & Limitations
@@ -131,9 +136,11 @@ SensorScope has undergone an independent, evidence-based read-only readiness aud
 - *None.* All code paths, pipeline steps, and automated tests are functional and passing.
 
 ### 2. Minor Methodological Limitations (Scientifically Documented)
+- **Temporal Group Clustering (Single-Overpass Concentration):** All 273 evaluation observations in the $0-5\text{ min}$ timing subgroup originate from a single date (`2023-11-05`) and satellite overpass (08:15 UTC). **Individual spatial grid cells from the same overpass are not independent temporal validation trials.** The Reliability Gate's **YELLOW** flag for this subgroup is essential because supporting validation evidence derives from a single regional overpass event.
 - **Observation Timing Lag:** Only 29.5% of co-active cell observations occur within 15 minutes. In-bin models show that harmonization benefits diminish when $\Delta t > 30\text{ min}$ due to physical fire progression. Documented as an empirical co-active harmonization, not a pure instrument calibration.
 - **Geographic Scope:** Evaluated over Punjab & Haryana agricultural burning. Results cannot be generalized universally to boreal forest or savannah biomes without regional recalibration.
 - **Grid Projection:** Uses regular geographic $0.1^\circ$ bins ($\approx 11.1 \times 9.6\text{ km}$), not an equal-area projection.
+
 
 ### 3. Items Requiring Organizer Confirmation (1 item)
 - **NASA Space Apps Challenge Rule Zero Clearance:**
