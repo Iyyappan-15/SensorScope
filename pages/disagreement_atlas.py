@@ -30,6 +30,7 @@ def render() -> None:
 
     # ── Overall match breakdown ────────────────────────────────────────────────
     st.subheader("📊 Cross-sensor observation breakdown")
+    st.caption("Exploratory archive: 6,772 diurnal cell observations, representing 6,751 unique calendar cell-dates.")
 
     total_cells = len(disagree)
     both   = int(disagree["has_both"].sum())
@@ -37,15 +38,14 @@ def render() -> None:
     v_only = int(disagree["viirs_only"].sum())
 
     col1, col2, col3, col4 = st.columns(4)
-    col1.metric("Total grid-cell-days", f"{total_cells:,}")
-    col2.metric("Both sensors active", f"{both:,}", f"{both/total_cells*100:.1f}%")
+    col1.metric("Total Diurnal Cell Obs", f"{total_cells:,}")
+    col2.metric("Both sensors detected", f"{both:,}", f"{both/total_cells*100:.1f}%")
     col3.metric("MODIS only", f"{m_only:,}", f"{m_only/total_cells*100:.1f}%")
     col4.metric("VIIRS only", f"{v_only:,}", f"{v_only/total_cells*100:.1f}%")
 
     st.info(
-        "⚠️ **Interpretation note:** 'MODIS only' or 'VIIRS only' does NOT necessarily mean "
-        "the other sensor missed a real fire. It may mean the sensor did not have "
-        "a valid observation opportunity for that cell on that day.",
+        "⚠️ **Interpretation note:** 'MODIS only' or 'VIIRS only' indicates observations reported by one sensor where the other sensor recorded no active fire hotspots in that grid cell during that pass. It does **not** prove the other sensor missed a real fire, as overpass timing, cloud cover, satellite viewing geometry, and sub-pixel detection limits differ.\n\n"
+        "ℹ️ **Population Distinction:** The 2,560 'Both sensors detected' observations belong to the broader exploratory archive (6,772 diurnal observations across 6,751 unique cell-dates). The strict calibration evaluation specifically evaluates 2,554 co-active cell-day observations (1,312 training + 1,242 evaluation) from November 1–10, 2022 and November 1–10, 2023.",
         icon=None,
     )
 
@@ -55,7 +55,7 @@ def render() -> None:
     left, right = st.columns([1.3, 1])
 
     with left:
-        st.subheader("🗺️ Spatial disagreement (Δ detection count)")
+        st.subheader("🗺️ Spatial reporting asymmetry (VIIRS − MODIS)")
         
         c_map1, c_map2 = st.columns([1.3, 1])
         with c_map1:
@@ -68,11 +68,11 @@ def render() -> None:
             )
         with c_map2:
             min_days = st.slider(
-                "Min Active Days per Cell",
+                "Min Diurnal Observation Passes per Cell",
                 min_value=1,
                 max_value=15,
                 value=1,
-                help="Filter out cells with very few active fire days to reduce clutter.",
+                help="Filter to cells observed across at least N diurnal passes to suppress transient single-pass noise.",
             )
 
         map_data = disagree.groupby(["grid_lat", "grid_lon"]).agg(
@@ -121,7 +121,7 @@ def render() -> None:
             zoom=6.6,
             opacity=0.75,
             custom_data=["mean_d_count", "n_days"],
-            labels={"mean_d_count": "Mean Δ count (VIIRS−MODIS)", "n_days": "Active days"},
+            labels={"mean_d_count": "Mean Δ count (VIIRS−MODIS)", "n_days": "Observation passes"},
             **style_kw,
         )
         fig.update_traces(
@@ -129,7 +129,7 @@ def render() -> None:
                 "<b>0.1° Grid Cell</b><br>"
                 "<b>Coordinates:</b> %{lat:.2f}°N, %{lon:.2f}°E<br>"
                 "<b>Mean Δ count (VIIRS−MODIS):</b> %{customdata[0]:+.2f}<br>"
-                "<b>Active Days:</b> %{customdata[1]}<extra></extra>"
+                "<b>Observation Passes:</b> %{customdata[1]}<extra></extra>"
             ),
             marker=dict(opacity=0.8),
         )
@@ -169,12 +169,22 @@ def render() -> None:
                 ),
             )
         st.plotly_chart(fig, use_container_width=True)
-        st.caption("🔵 Blue = VIIRS detects more | 🔴 Red = MODIS detects more | ⚪ White = balanced")
+        st.caption(
+            "🔵 Blue = More VIIRS-reported records | 🔴 Red = More MODIS-reported records | ⚪ White = Similar reported counts<br>"
+            "Aggregation: $\\Delta C = \\text{Mean}(C_{\\text{VIIRS}} - C_{\\text{MODIS}})$ per $0.1^\\circ$ grid cell across all diurnal observation passes.",
+            unsafe_allow_html=True,
+        )
 
     with right:
         st.subheader("📊 Disagreement by Day / Night")
+        st.caption("Mean difference in reported hotspot counts per diurnal cell observation (VIIRS − MODIS)")
         dn_stats = disagreement_by_daynight(disagree)
         if not dn_stats.empty:
+            day_row = dn_stats[dn_stats["daynight"] == "D"]
+            night_row = dn_stats[dn_stats["daynight"] == "N"]
+            day_n = int(day_row["n_cells"].values[0]) if not day_row.empty else 0
+            night_n = int(night_row["n_cells"].values[0]) if not night_row.empty else 0
+
             fig2 = go.Figure()
             fig2.add_trace(go.Bar(
                 x=dn_stats["daynight"], y=dn_stats["mean_d_count"],
@@ -182,11 +192,13 @@ def render() -> None:
                 text=dn_stats["mean_d_count"].round(2), textposition="auto",
             ))
             fig2.update_layout(
-                title="Mean (VIIRS − MODIS) detection count",
                 yaxis_title="Mean Δ count",
-                xaxis=dict(tickvals=["D", "N"], ticktext=["☀️ Day", "🌙 Night"]),
+                xaxis=dict(
+                    tickvals=["D", "N"],
+                    ticktext=[f"☀️ Day (n={day_n:,})", f"🌙 Night (n={night_n:,})"],
+                ),
                 height=220,
-                margin=dict(l=0, r=0, t=40, b=0),
+                margin=dict(l=0, r=0, t=20, b=0),
                 plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
             )
             st.plotly_chart(fig2, use_container_width=True)
@@ -205,14 +217,20 @@ def render() -> None:
                 color_continuous_scale="RdBu",
                 color_continuous_midpoint=0,
                 labels={"mean_d_count": "Mean Δ count", "season": "Season"},
-                title="Mean disagreement by season",
             )
             fig3.update_layout(
                 height=220, showlegend=False,
-                margin=dict(l=0, r=0, t=40, b=0),
+                yaxis_title="Mean Δ count",
+                margin=dict(l=0, r=0, t=20, b=0),
                 plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
             )
             st.plotly_chart(fig3, use_container_width=True)
+            st.caption(
+                "• **Post-monsoon** (Oct–Nov, n=6,731): Kharif burning peak (mean Δ count = +3.76).<br>"
+                "• **Pre-monsoon** (Mar–May, n=41): Rabi harvest burning (mean Δ count = +1.12).<br>"
+                "*Note: Observational archive data, not a controlled seasonal experiment. Monsoon and winter passes are unrepresented in this pilot archive.*",
+                unsafe_allow_html=True,
+            )
 
     st.divider()
 
@@ -221,41 +239,59 @@ def render() -> None:
     combined = data["combined"]
     if not combined.empty:
         fig4 = px.histogram(
-            combined[combined["frp_mw"] <= 500],
+            combined,
             x="frp_mw", color="sensor",
             nbins=60, barmode="overlay",
             color_discrete_map={"MODIS": "#FF6B35", "VIIRS": "#1E90FF"},
             opacity=0.7,
             labels={"frp_mw": "FRP (MW)", "sensor": "Sensor"},
-            title="FRP distribution — MODIS vs VIIRS (≤ 500 MW shown)",
+            title="Descriptive Raw FRP Distribution — MODIS vs VIIRS (0 – 158 MW)",
         )
         fig4.update_layout(
             height=320,
+            yaxis_title="Number of hotspot records",
+            xaxis_title="FRP (MW)",
             plot_bgcolor="rgba(0,0,0,0)",
             paper_bgcolor="rgba(0,0,0,0)",
         )
         st.plotly_chart(fig4, use_container_width=True)
         st.caption(
-            "VIIRS detects more weak fires (low FRP) due to its finer 375 m resolution. "
-            "MODIS pixels aggregate multiple fires, producing higher per-pixel FRP values. "
-            "This resolution difference is a primary source of sensor disagreement."
+            "Full exploratory archive range (0.0 to 158.0 MW; 95th percentile is 24.1 MW). "
+            "VIIRS detects a substantially higher volume of lower-FRP hotspots, reflecting its finer 375 m nadir footprint resolving smaller agricultural burns. "
+            "Rather than a single cause, observed FRP discrepancies arise from a combination of pixel footprint scaling, "
+            "sub-pixel fire fractional area, overpass time offsets (fires rapidly igniting or extinguishing), and atmospheric transmission."
         )
 
     # ── Association status breakdown ───────────────────────────────────────────
     if not combined_assoc.empty and "match_status" in combined_assoc.columns:
         st.divider()
         st.subheader("🔗 Candidate association status")
-        status_counts = combined_assoc.groupby(["sensor", "match_status"]).size().reset_index(name="count")
+
+        # Map to rigorous labels
+        status_label_map = {
+            "matched": "Unambiguous candidate",
+            "ambiguous": "Multiple candidate associations",
+            "unmatched": "No candidate within selected thresholds",
+        }
+        assoc_df = combined_assoc.copy()
+        assoc_df["status_label"] = assoc_df["match_status"].map(status_label_map).fillna(assoc_df["match_status"])
+
+        status_counts = assoc_df.groupby(["sensor", "status_label"]).size().reset_index(name="count")
+        
+        n_tot = len(assoc_df)
+        n_m = len(assoc_df[assoc_df["sensor"] == "MODIS"])
+        n_v = len(assoc_df[assoc_df["sensor"] == "VIIRS"])
+
         fig5 = px.bar(
-            status_counts, x="sensor", y="count", color="match_status",
+            status_counts, x="sensor", y="count", color="status_label",
             barmode="stack",
             color_discrete_map={
-                "matched": "#4caf50",
-                "unmatched": "#f44336",
-                "ambiguous": "#ff9800",
+                "Unambiguous candidate": "#4caf50",
+                "Multiple candidate associations": "#ff9800",
+                "No candidate within selected thresholds": "#f44336",
             },
-            labels={"count": "Records", "match_status": "Status"},
-            title="Cross-sensor candidate association status",
+            labels={"count": "Records", "status_label": "Candidate Status"},
+            title=f"Cross-sensor candidate association status (Sample of {n_tot:,} records)",
         )
         fig5.update_layout(
             height=300,
@@ -264,8 +300,12 @@ def render() -> None:
         )
         st.plotly_chart(fig5, use_container_width=True)
         st.caption(
-            "⚠️ **Methodological Boundary:** These are *exploratory candidate associations*, "
-            "not confirmed ground-truth fire identity matches. Orbital overpass time differences vary continuously."
+            f"Based on a representative sample of {n_tot:,} hotspot records ({n_m:,} MODIS, {n_v:,} VIIRS) "
+            "evaluated against nominal spatial-temporal thresholds (15 min, 11 km).<br>"
+            "⚠️ **Methodological Boundary:** These represent *exploratory candidate spatial-temporal associations*, "
+            "NOT verified physical fire identities or ground truth. In fast-moving agricultural burning, fires can ignite or extinguish "
+            "within minutes, and differing orbital viewing geometries cause parallax and footprint distortions.",
+            unsafe_allow_html=True,
         )
 
         # 9-cell sensitivity matrix
@@ -275,12 +315,37 @@ def render() -> None:
                 st.markdown(
                     "Sensitivity of cross-sensor candidate matching across 3 temporal windows "
                     "($\\Delta t \\in \\{5, 15, 30\\}\\text{ min}$) and 3 spatial radii "
-                    "($\\Delta r \\in \\{5, 11, 20\\}\\text{ km}$):"
+                    "($\\Delta r \\in \\{5, 11, 20\\}\\text{ km}$) across 5,000 scanned detections (1,013 MODIS, 3,987 VIIRS):"
                 )
                 df_sens = pd.read_csv(sens_file)
-                st.dataframe(df_sens, use_container_width=True, hide_index=True)
+
+                # Formatted summary view for users
+                summary_df = df_sens[[
+                    "time_window_min",
+                    "spatial_tol_km",
+                    "modis_candidate_assoc_pct",
+                    "modis_ambig_of_assoc_pct",
+                    "viirs_candidate_assoc_pct",
+                    "viirs_ambig_of_assoc_pct",
+                    "mean_observed_dt_min",
+                ]].copy()
+                summary_df.columns = [
+                    "Time Window (min)",
+                    "Spatial Radius (km)",
+                    "MODIS Associated (%)",
+                    "MODIS Ambiguous (%)",
+                    "VIIRS Associated (%)",
+                    "VIIRS Ambiguous (%)",
+                    "Mean Overpass Δt (min)",
+                ]
+                st.dataframe(summary_df, use_container_width=True, hide_index=True)
+
+                with st.expander("Detailed Technical Counts & Sub-metrics"):
+                    st.dataframe(df_sens, use_container_width=True, hide_index=True)
+
                 st.caption(
-                    "**Key Finding on Ambiguity:** At strict thresholds (5 min, 5 km), only 6.6% of MODIS records find a candidate match. "
+                    "**Key Finding on Ambiguity Escalation:** At strict thresholds (5 min, 5 km), only 6.6% of MODIS records find a candidate match. "
                     "At liberal thresholds (30 min, 20 km), 51.2% of MODIS records find a candidate match, but **91.5% of those candidate associations (475/519) are ambiguous** "
-                    "(1 MODIS detection matched to multiple VIIRS clusters). Empirical mean observed time offsets range from 1.5 to 13.4 minutes."
+                    "(1 MODIS detection matched to multiple VIIRS clusters). Empirical mean observed time offsets range from 1.5 to 13.4 minutes. "
+                    "This explosive escalation in ambiguity illustrates why point-to-point 1:1 matching is scientifically inappropriate for disparate-resolution sensors."
                 )
