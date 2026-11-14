@@ -134,16 +134,38 @@ def render() -> None:
              (sample["longitude"] >= 73.8) & (sample["longitude"] <= 77.5)).all()
         )
 
-        # Prepare hover information
+        # Prepare rich, human-readable hover information
         sample = sample.copy()
-        sample["hover_txt"] = (
-            "<b>" + sample["sensor"] + " Active Hotspot</b><br>"
-            "<b>Acquisition:</b> " + sample["acq_date"].astype(str) + " " + sample["acq_time"].astype(str).str.zfill(4) + " UTC<br>"
-            "<b>FRP:</b> " + sample["frp_mw"].round(1).astype(str) + " MW<br>"
-            "<b>Confidence:</b> " + sample["confidence_raw"].astype(str) + "<br>"
-            "<b>Pass:</b> " + sample["daynight"].map({"D": "Day (☀️)", "N": "Night (🌙)"}).fillna("Unknown") + "<br>"
-            "<b>Coordinates:</b> " + sample["latitude"].round(3).astype(str) + "°N, " + sample["longitude"].round(3).astype(str) + "°E"
-        )
+
+        def _fmt_conf(row):
+            s = row["sensor"]
+            raw = str(row["confidence_raw"]).strip()
+            if s == "VIIRS":
+                mapping = {"n": "Nominal (N)", "h": "High (H)", "l": "Low (L)"}
+                return mapping.get(raw.lower(), f"{raw.upper()}")
+            else:
+                try:
+                    val = int(float(raw))
+                    cat = "High" if val >= 80 else ("Nominal" if val >= 30 else "Low")
+                    return f"{val}% ({cat})"
+                except Exception:
+                    return raw
+
+        def _fmt_date(d):
+            try:
+                return pd.to_datetime(d).strftime("%d %b %Y")
+            except Exception:
+                return str(d)
+
+        def _fmt_time(t):
+            s = str(t).zfill(4)
+            return f"{s[:2]}:{s[2:]} UTC"
+
+        sample["date_disp"] = sample["acq_date"].apply(_fmt_date)
+        sample["time_disp"] = sample["acq_time"].apply(_fmt_time)
+        sample["conf_disp"] = sample.apply(_fmt_conf, axis=1)
+        sample["dn_disp"] = sample["daynight"].map({"D": "Day (☀️)", "N": "Night (🌙)"}).fillna("Unknown")
+        sample["coord_disp"] = sample.apply(lambda r: f"{r['latitude']:.4f}°N, {r['longitude']:.4f}°E", axis=1)
 
         # Basemap configuration
         esri_layer = {
@@ -181,16 +203,21 @@ def render() -> None:
             zoom=target_zoom,
             opacity=0.8,
             hover_name="sensor",
-            custom_data=["sensor", "acq_date", "acq_time", "frp_mw", "confidence_raw", "daynight"],
+            custom_data=["sensor", "date_disp", "time_disp", "frp_mw", "conf_disp", "dn_disp", "coord_disp"],
             **map_kw,
         )
         fig_map.update_traces(
-            hovertemplate=
-            "<b>%{customdata[0]} Active Hotspot</b><br>"
-            "<b>Acquisition:</b> %{customdata[1]} %{customdata[2]} UTC<br>"
-            "<b>FRP:</b> %{customdata[3]:.1f} MW<br>"
-            "<b>Confidence:</b> %{customdata[4]}<br>"
-            "<b>Pass:</b> %{customdata[5]}<extra></extra>",
+            hovertemplate=(
+                "<b>%{customdata[0]} Active Hotspot</b><br><br>"
+                "<b>Observation details</b><br>"
+                "• <b>Date:</b> %{customdata[1]}<br>"
+                "• <b>Acquisition time:</b> %{customdata[2]}<br>"
+                "• <b>FRP:</b> %{customdata[3]:.1f} MW<br>"
+                "• <b>Confidence:</b> %{customdata[4]}<br>"
+                "• <b>Day/Night:</b> %{customdata[5]}<br>"
+                "• <b>Coordinates:</b> %{customdata[6]}"
+                "<extra></extra>"
+            ),
             marker=dict(size=5.5),
         )
 
@@ -306,7 +333,7 @@ def render() -> None:
                 barmode="group",
                 height=380,
                 xaxis_title="Month",
-                yaxis_title="Reported Grid-Cell Detections",
+                yaxis_title="Raw hotspot records",
                 legend=dict(orientation="h", y=1.05, x=0.0),
                 margin=dict(l=0, r=0, t=25, b=0),
                 plot_bgcolor="rgba(0,0,0,0)",
@@ -323,7 +350,7 @@ def render() -> None:
 
     with col_hist_right:
         st.subheader("🗺️ Sensor Disagreement Breakdown")
-        st.caption("Cross-sensor reporting asymmetry across all 6,751 calendar cell-days.")
+        st.caption("Cross-sensor detection patterns across 6,772 diurnal cell observations (6,751 unique calendar cell-dates).")
         if not disagree.empty:
             total_cells = len(disagree)
             both_count = int(disagree["has_both"].sum())
@@ -332,7 +359,7 @@ def render() -> None:
 
             # Horizontal bar comparison
             dis_df = pd.DataFrame({
-                "Category": ["Both Sensors Active", "VIIRS Only (MODIS Missed)", "MODIS Only (VIIRS Missed)"],
+                "Category": ["Both Sensors Detected", "VIIRS-only observations", "MODIS-only observations"],
                 "Count": [both_count, v_only_count, m_only_count],
                 "Share": [both_count / total_cells * 100, v_only_count / total_cells * 100, m_only_count / total_cells * 100],
                 "Color": ["#4caf50", "#1E90FF", "#FF6B35"],
@@ -349,7 +376,7 @@ def render() -> None:
             ))
             fig_dis.update_layout(
                 height=380,
-                xaxis_title="Grid-Cell Observations",
+                xaxis_title="Diurnal Cell Observations",
                 yaxis=dict(autorange="reversed"),
                 margin=dict(l=0, r=0, t=25, b=0),
                 plot_bgcolor="rgba(0,0,0,0)",
