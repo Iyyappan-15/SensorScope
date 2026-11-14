@@ -1,4 +1,4 @@
-# 🛰️ SensorScope: Explainable MODIS–VIIRS Harmonization & Calibration Audit
+# SensorScope: Explainable MODIS–VIIRS Harmonization & Calibration Audit
 
 > **Tagline:** *Two satellites see the same Earth differently. We explain why, measure the difference, and build a more reliable historical fire-activity record.*
 
@@ -11,14 +11,14 @@
 
 ---
 
-### 🌐 Live Public Deployment
-- 🔗 **Interactive Web Application:** **[https://sensorscope.streamlit.app](https://sensorscope.streamlit.app)**
-- 💻 **Public GitHub Repository:** **[https://github.com/Iyyappan-15/SensorScope](https://github.com/Iyyappan-15/SensorScope)**
-- 🏷️ **Pre-Event Checkpoint Branch:** **[pre-event-mvp-checkpoint](https://github.com/Iyyappan-15/SensorScope/tree/pre-event-mvp-checkpoint)**
+### Public Deployment & Resources
+- **Interactive Web Application:** **[https://sensorscope.streamlit.app](https://sensorscope.streamlit.app)**
+- **Source Repository:** **[https://github.com/Iyyappan-15/SensorScope](https://github.com/Iyyappan-15/SensorScope)**
+- **Pre-Event Checkpoint Branch:** **[pre-event-mvp-checkpoint](https://github.com/Iyyappan-15/SensorScope/tree/pre-event-mvp-checkpoint)**
 
 ---
 
-## 🎯 The Real-World Problem
+## The Real-World Problem
 
 NASA has collected satellite active-fire observations for over two decades using two critical instruments:
 - **MODIS (Terra & Aqua):** Nominal 1 km pixel resolution (2000–present)
@@ -43,7 +43,7 @@ Long-Term Satellite Observation Transition:
 
 ---
 
-## 💡 SensorScope Solution & Core Innovation
+## System Architecture & Harmonization Framework
 
 Rather than naively merging hotspots or applying a black-box model everywhere, **SensorScope introduces an auditable, coverage-aware calibration transferability engine with an evidence-based reliability gate**:
 
@@ -72,7 +72,7 @@ Rather than naively merging hotspots or applying a black-box model everywhere, *
                              └───────────┬───────────┘
                ┌─────────────────────────┼────────────────────────┐
                ▼                         ▼                        ▼
-       🟢 GREEN STATUS           🟡 YELLOW STATUS          🔴 RED STATUS
+       GREEN STATUS             YELLOW STATUS            RED STATUS
      Supported (Pilot)          Borderline Coverage     Insufficient Evidence
   Apply validated correction     Show caution banner       ABSTAIN from correction
    Empirical error envelope      Preserve raw values      Report missing evidence
@@ -80,7 +80,7 @@ Rather than naively merging hotspots or applying a black-box model everywhere, *
 
 ---
 
-## 🧪 Validated Empirical Results (Real NASA FIRMS Data)
+## Empirical Validation & Benchmark Results
 
 Tested on real NASA FIRMS Standard Processing data over **Punjab & Haryana, India** (analytical rectangular bounding box `[73.8°E, 29.5°N, 77.5°E, 32.5°N]`):
 
@@ -100,9 +100,9 @@ Evaluated strictly on the synchronized November 1–10 agricultural burning wind
 
 | Model | Methodology | Train MAE | Comparative Eval MAE | Eval Bias % | Spearman $\rho$ | Reliability Status |
 |---|---|---|---|---|---|:---:|
-| **Model A: Identity** | Raw VIIRS (No correction) | 40.28 MW | 30.9304 MW | +6.88% | 0.465431 | 🟢 Baseline |
-| **Model B: Global RMA** | Reduced Major Axis ($\text{slope}=0.80528$, $\text{intercept}=1.4247\text{ MW}$) | 34.93 MW | 27.2526 MW | -10.55% | 0.465432 | 🟢 Supported |
-| **Model C: Context-Aware** | Predictor-side OLS (VIIRS FRP + Count + Night) | 30.42 MW | **26.1863 MW** | **+8.06%** | **0.467452** | 🟢 **Best Model** |
+| **Model A: Identity** | Raw VIIRS (No correction) | 40.28 MW | 30.9304 MW | +6.88% | 0.465431 | Baseline (Uncorrected) |
+| **Model B: Global RMA** | Reduced Major Axis ($\text{slope}=0.80528$, $\text{intercept}=1.4247\text{ MW}$) | 34.93 MW | 27.2526 MW | -10.55% | 0.465432 | Calibrated (Linear) |
+| **Model C: Context-Aware** | Predictor-side OLS (VIIRS FRP + Count + Night) | 30.42 MW | **26.1863 MW** | **+8.06%** | **0.467452** | **Recommended Model** |
 
 > **Scientific Finding:** On the strict November 1–10 calibration cohort ($N=2,554$ co-active cell/date/diurnal observations), context-aware calibration reduces comparative evaluation period Mean Absolute Error from **30.93 MW down to 26.19 MW** (an error reduction of 15.3% over identity) without target leakage. In 5-fold date-grouped cross-validation across acquisition dates, pooled out-of-fold MAE is **31.5128 MW**. Descriptive empirical residual envelopes achieve **94.6% coverage** (1,175/1,242) on the held-out November 2023 comparative evaluation period.
 
@@ -111,17 +111,17 @@ Evaluated strictly on the synchronized November 1–10 agricultural burning wind
 
 ---
 
-## 🖥️ 5-Screen Interactive Architecture
+## Application Structure
 
-1. **🏠 Overview:** Regional KPI cards, interactive Mapbox satellite hotspot viewer, monthly time series, and overall reliability stats.
-2. **🗺️ Disagreement Atlas:** Geospatial divergence maps ($\Delta \text{count}$, $\Delta \text{FRP}$), day vs. night divergence, candidate association status, and a full 9-cell spatial/temporal sensitivity matrix.
-3. **🔬 Calibration Lab:** Paired scatter plots, 1:1 reference comparisons, before-and-after calibration shifts, and high-precision model evaluation scorecards.
-4. **📅 Fire Activity Calendar:** Raw sensor-specific observations, calibrated estimates with descriptive empirical error envelopes where supported, and clearly identified cases where calibration is unavailable.
-5. **📋 Methodology & Evidence:** Academic citations, processing assumptions, limitations, and CSV data export buttons.
+1. **Overview:** Regional KPI cards, interactive Mapbox satellite hotspot viewer, monthly time series, and overall reliability stats.
+2. **Disagreement Atlas:** Geospatial divergence maps ($\Delta \text{count}$, $\Delta \text{FRP}$), day vs. night divergence, candidate association status, and a full 9-cell spatial/temporal sensitivity matrix.
+3. **Calibration Lab:** Paired scatter plots, 1:1 reference comparisons, before-and-after calibration shifts, and high-precision model evaluation scorecards.
+4. **Fire Activity Calendar:** Raw sensor-specific observations, calibrated estimates with descriptive empirical error envelopes where supported, and clearly identified cases where calibration is unavailable.
+5. **Methodology & Evidence:** Academic citations, processing assumptions, limitations, and CSV data export buttons.
 
 ---
 
-## 🚀 Quickstart & Setup
+## Installation & Local Execution
 
 ### 1. Clone & Install
 ```bash
@@ -152,7 +152,7 @@ pytest tests -v
 
 ---
 
-## 🔬 Scientific Foundations & References
+## Scientific References
 
 - **Li, F., Zhang, X., Kondragunta, S., & Csiszar, I. (2018).** *Comparison of Fire Radiative Power Estimates From VIIRS and MODIS Observations.* Journal of Geophysical Research: Atmospheres, 123, 4545–4563. [DOI: 10.1029/2017JD027823](https://doi.org/10.1029/2017JD027823)
 - **Sofiev, M., & Kouznetsov, R. (2026).** *Observation operator and detection limits for MODIS and VIIRS Fire Radiative Power products.* Geoscientific Model Development, 19, 10123–10145. [DOI: 10.5194/gmd-19-10123-2026](https://doi.org/10.5194/gmd-19-10123-2026)
@@ -160,7 +160,7 @@ pytest tests -v
 
 ---
 
-## ⚖️ License, Data Attribution & Disclaimer
+## License, Data Attribution & Compliance
 - **Software License:** MIT License. See [LICENSE](LICENSE). This license applies strictly to the SensorScope software source code written by the team.
 - **NASA FIRMS & LANCE Attribution & Disclaimer:** We acknowledge the use of data from NASA's Fire Information for Resource Management System (FIRMS) ([earthdata.nasa.gov/firms](https://earthdata.nasa.gov/firms)), part of the Land, Atmosphere Near real-time Capability for EOS (LANCE). NASA active fire products (MODIS Collection 6.1 SP and VIIRS Collection 2 SP) are provided under NASA Open Data policies. NASA makes no warranties, express or implied, regarding the data's accuracy, completeness, or fitness for any particular purpose. Standard Processing (SP) science data are produced by the MODIS Adaptive Processing System (MODAPS) and Land SIPS.
 - **AI Tool Disclosure:** In accordance with NASA Space Apps Challenge disclosure rules, AI tools were utilized during project preparation and development:
