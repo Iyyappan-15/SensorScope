@@ -107,7 +107,7 @@ Tested on real NASA FIRMS Standard Processing data over **Punjab & Haryana, Indi
 
 ### 1. Clone & Install
 ```bash
-git clone https://github.com/your-username/sensorscope.git
+git clone https://github.com/Iyyappan-15/SensorScope.git
 cd sensorscope
 pip install -r requirements.txt
 ```

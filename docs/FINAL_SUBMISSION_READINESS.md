@@ -251,7 +251,7 @@ sensorscope/tests/test_pipeline.py::test_cell_day_accounting_reconciliation PASS
 | **Git Working Tree** | Clean, no unstaged or untracked changes | `git status` reports `nothing to commit, working tree clean`. | **PASS** |
 | **Current HEAD** | Target commit | `dc609f16e32e1e0a9d579abff752f423c7bbf14c` on branch `master`. | **PASS** |
 | **Pre-Event Checkpoint** | Preserved tag/branch | Branch `pre-event-mvp-checkpoint` exists at commit `e59bb49a363d4651f4c84b1c39504accb517f112`. | **PASS** |
-| **Remote Sync Status** | Public origin configured | `git remote -v` returns empty. No remote origin is configured. | **FAIL** *(Pending setup)* |
+| **Remote Sync Status** | Public origin configured | Origin configured: `https://github.com/Iyyappan-15/SensorScope.git`. Both `master` and `pre-event-mvp-checkpoint` pushed cleanly. | **PASS** |
 | **Secrets in Git History** | No API keys, credentials, or tokens | `git grep -i "map_key"` confirms only template placeholders (`your_map_key_here`, `your_key_here`). No credentials committed. | **PASS** |
 | **Gitignore Protection** | Excludes `.env`, raw data, databases | `.gitignore` covers `.env`, `data/raw/`, `data/processed/`, `*.parquet`, `*.duckdb`, `*.db`, `venv/`. | **PASS** |
 | **Local Path Leakage** | No private drive letters or usernames | Scans for `C:\`, `D:\`, `Users\acer` in committed files and `README.md` returned 0 occurrences. | **PASS** |
@@ -265,7 +265,7 @@ sensorscope/tests/test_pipeline.py::test_cell_day_accounting_reconciliation PASS
 | **1. Project README** | Complete setup, methodology & overview | **PASS** | `README.md` is complete, professional, and includes architecture, setup, and scientific context. |
 | **2. Presentation Slide Deck** | 7-slide deck (`.pdf` or `.pptx`) | **FAIL** | Narrative script exists (`docs/PRESENTATION_NARRATIVE.md`), but no physical `.pdf` or `.pptx` file exists in the repository. |
 | **3. Demonstration Video** | Recorded demonstration (`.mp4`) | **FAIL** | No recorded video file exists in the repository. |
-| **4. Public Repository URL** | Accessible GitHub repository | **PENDING** | No Git remote origin is configured on the local repository. |
+| **4. Public Repository URL** | Accessible GitHub repository | **PASS** | `https://github.com/Iyyappan-15/SensorScope.git` (Both `master` and `pre-event-mvp-checkpoint` branches pushed). |
 | **5. Live Demo or Local Backup** | Accessible app URL or clear local instructions | **PASS** | App runs locally on `http://localhost:8501`; `README.md` provides explicit one-command startup instructions. |
 | **6. Project Summary & Description** | Clear hackathon pitch & documentation | **PASS** | Detailed in `README.md` and `docs/methodology.md`. |
 | **7. Data & Scientific Citations** | NASA attribution & published DOIs | **PASS** | Li et al. (2018), Sofiev & Kouznetsov (2026), and NASA FIRMS properly cited. |
