@@ -324,10 +324,8 @@ Observation operator and detection limits for MODIS and VIIRS Fire Radiative Pow
 
 ---
 
-**NASA FIRMS (Fire Information for Resource Management System)**
-[https://firms.modaps.eosdis.nasa.gov](https://firms.modaps.eosdis.nasa.gov)
-
-> MODIS SP Collection 6.1 and VIIRS S-NPP SP Collection 2 active fire data products.
+**NASA FIRMS & LANCE Attribution & Disclaimer**
+> We acknowledge the use of data from NASA's Fire Information for Resource Management System (FIRMS) ([https://earthdata.nasa.gov/firms](https://earthdata.nasa.gov/firms)), part of the Land, Atmosphere Near real-time Capability for EOS (LANCE). NASA active fire products (MODIS Collection 6.1 SP and VIIRS Collection 2 SP) are provided under NASA Open Data policies. NASA makes no warranties, express or implied, regarding the data's accuracy, completeness, or fitness for any particular purpose.
 
 ---
 

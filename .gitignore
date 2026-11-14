@@ -2,8 +2,7 @@
 .env
 *.env.local
 
-# === DATA — TOO LARGE FOR GIT ===
-data/raw/
+# === DATA — ALLOW FIRMS SOURCE CSVS, EXCLUDE PROCESSED/DATABASES ===
 data/processed/
 *.parquet
 *.duckdb
