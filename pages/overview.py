@@ -29,17 +29,22 @@ def render() -> None:
     data_source_banner(data["using_real_data"])
 
     # ── 2. Headline Scientific KPI Cards (Strict Nov 1–10 Kharif Peak) ────────
-    st.markdown("### 🔬 Audited Scientific Harmonization Population *(Strict Nov 1–10 Window)*")
+    st.markdown("### 🔬 Audited Pilot Harmonization Population *(Strict Nov 1–10 Window)*")
     st.caption(
-        "Peer-audited dataset for Reduced Major Axis (RMA) calibration, date-blocked cross-validation, and Model C evaluation."
+        "Audited pilot dataset for Reduced Major Axis (RMA) calibration, date-grouped cross-validation, and Model C evaluation."
     )
 
     sc1, sc2, sc3, sc4, sc5 = st.columns(5)
     sc1.metric("2022 Training Pairs", "1,312", "Nov 1–10, 2022")
     sc2.metric("2023 Evaluation Pairs", "1,242", "Nov 1–10, 2023")
-    sc3.metric("Strict Co-Active Pairs", "2,554", "Total Population")
-    sc4.metric("Active Dates", "10 + 9", "19 Distinct Passes")
-    sc5.metric("Model C Held-Out MAE", "26.19 MW", "+8.1% Bias (Gate: Green)")
+    sc3.metric("Co-active cell-day observations", "2,554", "Total Population")
+    sc4.metric("Active Study Dates", "10 + 9", "19 Active Study Dates")
+    sc5.metric("Model C Nov 2023 Evaluation MAE", "26.19 MW", "+8.1% Bias (Aggregate Pilot Gate: Green)")
+
+    st.caption(
+        "ℹ️ **Gate Scope:** *Aggregate Pilot Gate is GREEN across the regional evaluation dataset (+8.1% bias, MAE = 26.19 MW). "
+        "Individual temporal subgroups (e.g., Δt ≤ 5 min) receive CAUTION or ABSTAIN statuses due to elevated subgroup validation bias or localized sample size limitations.*"
+    )
 
     # ── Collapsible Complete Ingestion Archive Metrics ────────────────────────
     with st.expander("📡 View Complete Raw Ingestion Archive Metrics (2022–2023 Archive)", expanded=False):
@@ -96,9 +101,14 @@ def render() -> None:
 
         with ctrl5:
             show_grid_overlay = st.checkbox(
-                "Show 0.1° Grid Overlay",
+                "0.1° Grid Overlay",
                 value=False,
                 help="Display bounding lines of the 0.1° (~11 km) spatial analysis cells.",
+            )
+            density_view = st.checkbox(
+                "Density Heatmap View",
+                value=False,
+                help="Render a continuous thermal kernel density surface instead of discrete point centroids.",
             )
 
         # Apply filtering
@@ -193,33 +203,49 @@ def render() -> None:
         target_center = dict(lat=30.8, lon=76.0)
         target_zoom = 6.8
 
-        fig_map = scatter_fn(
-            sample,
-            lat="latitude",
-            lon="longitude",
-            color="sensor",
-            color_discrete_map={"MODIS": "#FF6B35", "VIIRS": "#1E90FF"},
-            center=target_center,
-            zoom=target_zoom,
-            opacity=0.8,
-            hover_name="sensor",
-            custom_data=["sensor", "date_disp", "time_disp", "frp_mw", "conf_disp", "dn_disp", "coord_disp"],
-            **map_kw,
-        )
-        fig_map.update_traces(
-            hovertemplate=(
-                "<b>%{customdata[0]} Active Hotspot</b><br><br>"
-                "<b>Observation details</b><br>"
-                "• <b>Date:</b> %{customdata[1]}<br>"
-                "• <b>Acquisition time:</b> %{customdata[2]}<br>"
-                "• <b>FRP:</b> %{customdata[3]:.1f} MW<br>"
-                "• <b>Confidence:</b> %{customdata[4]}<br>"
-                "• <b>Day/Night:</b> %{customdata[5]}<br>"
-                "• <b>Coordinates:</b> %{customdata[6]}"
-                "<extra></extra>"
-            ),
-            marker=dict(size=5.5),
-        )
+        if density_view:
+            density_fn = getattr(px, "density_map", None) or px.density_mapbox
+            fig_map = density_fn(
+                sample,
+                lat="latitude",
+                lon="longitude",
+                z="frp_mw",
+                radius=14,
+                center=target_center,
+                zoom=target_zoom,
+                opacity=0.8,
+                color_continuous_scale="Viridis",
+                labels={"frp_mw": "FRP (MW)"},
+                **map_kw,
+            )
+        else:
+            fig_map = scatter_fn(
+                sample,
+                lat="latitude",
+                lon="longitude",
+                color="sensor",
+                color_discrete_map={"MODIS": "#FF6B35", "VIIRS": "#1E90FF"},
+                center=target_center,
+                zoom=target_zoom,
+                opacity=0.8,
+                hover_name="sensor",
+                custom_data=["sensor", "date_disp", "time_disp", "frp_mw", "conf_disp", "dn_disp", "coord_disp"],
+                **map_kw,
+            )
+            fig_map.update_traces(
+                hovertemplate=(
+                    "<b>%{customdata[0]} Active Hotspot</b><br><br>"
+                    "<b>Observation details</b><br>"
+                    "• <b>Date:</b> %{customdata[1]}<br>"
+                    "• <b>Acquisition time:</b> %{customdata[2]}<br>"
+                    "• <b>FRP:</b> %{customdata[3]:.1f} MW<br>"
+                    "• <b>Confidence:</b> %{customdata[4]}<br>"
+                    "• <b>Day/Night:</b> %{customdata[5]}<br>"
+                    "• <b>Coordinates:</b> %{customdata[6]}"
+                    "<extra></extra>"
+                ),
+                marker=dict(size=5.5),
+            )
 
         # Optional 0.1° grid boundary overlay
         if show_grid_overlay:
@@ -251,7 +277,7 @@ def render() -> None:
                 map=layout_dict,
                 height=560,
                 margin=dict(l=0, r=0, t=30, b=0),
-                uirevision=f"sensorscope_explorer_{basemap_choice}",
+                uirevision=f"sensorscope_explorer_{basemap_choice}_{density_view}",
                 legend=dict(
                     orientation="h",
                     y=1.03,
@@ -267,7 +293,7 @@ def render() -> None:
                 mapbox=layout_dict,
                 height=560,
                 margin=dict(l=0, r=0, t=30, b=0),
-                uirevision=f"sensorscope_explorer_{basemap_choice}",
+                uirevision=f"sensorscope_explorer_{basemap_choice}_{density_view}",
                 legend=dict(
                     orientation="h",
                     y=1.03,
@@ -280,6 +306,12 @@ def render() -> None:
             )
 
         st.plotly_chart(fig_map, use_container_width=True)
+
+        # Basemap provider attribution
+        st.caption(
+            "🛰️ **Basemap Attribution:** Imagery © ESRI, Maxar, Earthstar Geographics, and the GIS User Community. "
+            "Vector tiles © OpenStreetMap contributors, CartoDB."
+        )
 
         # Map disclaimers, sampling disclosure and geographic integrity verification
         cap_col1, cap_col2 = st.columns([1.5, 1])
@@ -341,8 +373,9 @@ def render() -> None:
             )
             st.plotly_chart(fig_monthly, use_container_width=True)
             st.caption(
-                "🔥 **Seasonal burning dynamics:** The massive October–November peak corresponds to post-monsoon "
-                "Kharif paddy stubble burning. A secondary minor peak occurs in April–May (Rabi wheat harvest). "
+                "🔥 **Seasonal Activity Patterns:** The observed seasonal pattern coincides with reported regional agricultural burning periods "
+                "(post-monsoon Kharif paddy stubble in Oct–Nov; minor Rabi wheat residue in Apr–May). "
+                "FIRMS hotspot detections do not independently establish the fuel type or cause of each fire. "
                 "Scientific calibration is evaluated strictly on the November peak."
             )
         else:
@@ -384,8 +417,10 @@ def render() -> None:
             )
             st.plotly_chart(fig_dis, use_container_width=True)
             st.caption(
-                "⚡ **Sub-pixel sensitivity asymmetry:** VIIRS reports fire in 3,724 cells where MODIS reports none (55.0%), "
-                "driven by its 375 m pixel resolving weak agricultural burns that dilute across MODIS's 1 km footprint."
+                "⚡ **Observation Asymmetry:** VIIRS reports fire in 3,724 cells where MODIS reports none (55.0%), "
+                "while MODIS reports fire in 488 cells where VIIRS reports none (7.2%). "
+                "VIIRS-only observations may reflect differences in spatial resolution, observation timing, viewing geometry, "
+                "atmospheric conditions and sensor detection characteristics. The current analysis does not isolate the cause of individual disagreements."
             )
         else:
             st.info("Processing disagreement data…")
@@ -401,10 +436,11 @@ def render() -> None:
     with gc1:
         st.markdown(
             '<div class="gate-card-green">'
-            '<strong style="color:#2e7d32; font-size:1.0rem;">🟢 Reliable (Pilot Model)</strong><br>'
+            '<strong style="color:#2e7d32; font-size:1.0rem;">🟢 Reliable (Aggregate Pilot Model)</strong><br>'
             '<span style="font-size:0.88rem; color:inherit; line-height:1.45; display:inline-block; margin-top:4px;">'
-            '<strong>Model C (Context OLS)</strong> is fully supported across Punjab & Haryana. '
-            'N = 2,554 co-active pairs (1,312 train / 1,242 eval), held-out MAE = 26.19 MW, bias = +8.1% (≤ ±15% threshold).'
+            '<strong>Model C (Context OLS)</strong> meets the aggregate evaluation criteria for the November Punjab–Haryana pilot dataset '
+            '(held-out MAE = 26.19 MW, bias = +8.1% across N = 2,554 co-active pairs). '
+            'This does not establish independent reliability for every individual grid cell, season or fire condition.'
             '</span></div>',
             unsafe_allow_html=True,
         )
@@ -429,7 +465,16 @@ def render() -> None:
             unsafe_allow_html=True,
         )
 
-    st.markdown("#### Spatial Applicability Audit across 481 Active 0.1° Grid Cells")
+    st.markdown("#### Spatial Applicability of the Regional Calibration Model (481 Active 0.1° Grid Cells)")
+    st.info(
+        "ℹ️ **Evaluation Scope Clarification:** "
+        "The metrics below (**Regional Evaluation MAE = 26.19 MW**, **Regional Evaluation Bias = +8.1%**) "
+        "reflect the *aggregate performance of the regional Model C on the held-out November 2023 evaluation sample*. "
+        "They are **NOT independent per-cell validation metrics**, as individual 0.1° grid cells possess only 1 to 28 local co-active observations "
+        "(statistically insufficient for standalone local regression). "
+        "The status indicates whether each cell's local mean FRP falls within the regional model's evaluated input domain (Q01–Q99).",
+        icon=None,
+    )
     rel = data["reliability"]
     if not rel.empty:
         counts = rel["status"].value_counts()
@@ -439,15 +484,15 @@ def render() -> None:
         total = len(rel)
 
         ac1, ac2, ac3 = st.columns(3)
-        ac1.markdown(f'<span class="badge-green">🟢 Reliable</span> &nbsp; **{g}** of {total} grid cells (in-domain agricultural fires)', unsafe_allow_html=True)
+        ac1.markdown(f'<span class="badge-green">🟢 In-domain</span> &nbsp; **{g}** of {total} grid cells (cell mean FRP within Q01–Q99 bounds)', unsafe_allow_html=True)
         ac2.markdown(f'<span class="badge-yellow">🟡 Caution</span> &nbsp; **{y}** of {total} grid cells (borderline conditions)', unsafe_allow_html=True)
-        ac3.markdown(f'<span class="badge-red">🔴 Abstain</span> &nbsp; **{r}** of {total} grid cells (extreme outlier FRP > 279 MW)', unsafe_allow_html=True)
+        ac3.markdown(f'<span class="badge-red">🔴 Out-of-domain</span> &nbsp; **{r}** of {total} grid cells (outlier mean FRP > 279.18 MW)', unsafe_allow_html=True)
 
-        with st.expander("View full per-cell reliability audit table"):
+        with st.expander("View full per-cell domain applicability table"):
             display = rel[["grid_lat", "grid_lon", "n_paired_obs", "status_label",
                            "val_mae", "val_bias_pct", "reason"]].copy()
-            display.columns = ["Lat", "Lon", "Local Pairs", "Status",
-                               "Val MAE (MW)", "Val bias %", "Scientific Rationale"]
+            display.columns = ["Grid Lat", "Grid Lon", "Local co-active observations", "Regional Domain Status",
+                               "Regional evaluation MAE (MW)", "Regional evaluation bias %", "Domain Applicability Rationale"]
             st.dataframe(display, use_container_width=True)
     else:
         st.info("Reliability analysis not yet available — requires paired MODIS+VIIRS observations.")
@@ -456,16 +501,15 @@ def render() -> None:
     st.divider()
     with st.expander("ℹ️ About SensorScope"):
         st.markdown("""
-**SensorScope** investigates why MODIS and VIIRS satellite instruments report different fire
-observations for the same location and time, derives a validated common-reference fire activity
-measure where the data supports it, and **visibly abstains** when it cannot make a reliable correction.
+**About SensorScope**
 
-**Key principle:** A missing FIRMS record does not mean zero fire activity. It may mean
-the satellite did not observe that location, or clouds obscured the view.
+SensorScope investigates differences between MODIS and VIIRS active-fire observations over Punjab and Haryana, India.
 
-**Data:** NASA FIRMS Standard Processing — the internally consistent, well-calibrated record
-intended for scientific analysis. SP data has a ~3-month availability lag vs. NRT.
+It compares sensor-specific detections, aggregates observations into geographic grid-cell and diurnal periods, and evaluates an empirical MODIS-referenced FRP harmonization model where sufficient evidence exists.
 
-**Pilot region:** Punjab & Haryana, India — a high-intensity agricultural burning area
-with clear seasonal peaks (Oct–Nov Kharif stubble, Apr–May Rabi stubble).
+**Key principle:** A missing FIRMS detection does not mean zero fire activity. It may mean the location was not observed or the thermal anomaly was not detected (e.g. cloud obscuration, orbital gap).
+
+**Data:** NASA FIRMS Standard Processing products — Aqua MODIS Collection 6.1 and Suomi-NPP VIIRS Collection 2.
+
+**Scientific scope:** The current calibration is evaluated on jointly active cell-day observations during the November agricultural burning pilot. It is an empirical MODIS-referenced FRP harmonization for jointly active cell-day observations, not a universal sensor correction or an individual fire-event matching system.
         """)

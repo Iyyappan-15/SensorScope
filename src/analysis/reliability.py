@@ -299,15 +299,14 @@ def build_reliability_table(
         )
         
         status_label = {
-            "green": "🟢 Reliable (pilot)",
-            "yellow": "🟡 Use with caution",
-            "red": "🔴 Calibration unavailable",
+            "green": "🟢 In-domain (pilot)",
+            "yellow": "🟡 Caution (borderline)",
+            "red": "🔴 Out-of-domain / Abstain",
         }.get(rel.status, rel.status)
         
         reason_text = (
-            f"Supported by regional model (N={total_regional_pairs}): "
-            f"{int(row['n_paired_obs'])} co-active cell-days observed locally; "
-            f"mean FRP {cell_frp:.1f} MW within validated domain (Q01-Q99)."
+            f"In-domain under regional Model C: {int(row['n_paired_obs'])} local co-active observations; "
+            f"mean FRP {cell_frp:.1f} MW within regional training bounds (Q01–Q99). Applies aggregate regional model."
             if rel.status == "green"
             else rel.reason
         )
