@@ -29,69 +29,124 @@ def render() -> None:
 
     with tab1:
         st.markdown("""
-## Data Sources
+## Data Sources & Provenance
 
-### Primary data
-| Product | Sensor | Platform | Collection | Resolution | Period |
-|---------|--------|----------|------------|------------|--------|
-| MODIS Active Fire | MODIS | Aqua & Terra | C6.1 SP | 1 km nominal | 2000–present |
-| VIIRS Active Fire | VIIRS | Suomi-NPP | C2 SP | 375 m nominal | 2012–present |
+### Primary NASA FIRMS Data Products
+| Product Identifier | Sensor | Platform | Collection | Nominal Resolution | Product Coverage | Pilot Role |
+|:---|:---|:---|:---|:---|:---|:---|
+| `MODIS_SP` | MODIS | Aqua | C6.1 SP | 1 km at nadir | July 2002 – present | **Selected** (Primary baseline) |
+| `MODIS_SP` | MODIS | Terra | C6.1 SP | 1 km at nadir | Nov 2000 – present | *Excluded from calibration* (Morning orbit) |
+| `VIIRS_SNPP_SP` | VIIRS | Suomi-NPP | C2 SP | 375 m at nadir | Jan 20, 2012 – present | **Selected** (Primary comparison) |
+| `VIIRS_NOAA20_SP` | VIIRS | NOAA-20 / JPSS-1 | C2 SP | 375 m at nadir | 2018 – present | *Excluded from pilot* |
+| `VIIRS_NOAA21_SP` | VIIRS | NOAA-21 / JPSS-2 | C2 SP | 375 m at nadir | 2023 – present | *Excluded from pilot* |
 
 **Source:** [NASA FIRMS — Fire Information for Resource Management System](https://firms.modaps.eosdis.nasa.gov)
 
-We use **Standard Processing (SP)** data — the internally consistent, well-calibrated record
-intended for scientific analysis. SP data has a ~3-month availability lag compared to
-Near-Real-Time (NRT) data. We do not mix SP and NRT in the same analysis.
+### Standard Processing (SP) Quality Standard
+We use **Standard Processing (SP)** data because it provides an internally consistent, science-quality record for historical analysis. SP products typically become available after approximately 2–3 months, although processing delays can sometimes extend to 5 months. Near-Real-Time (NRT) and SP records are not mixed within this analysis.
 
-### Study region
+### Study Region
 **Punjab & Haryana, India**
-- Bounding box: 73.8°E – 77.5°E, 29.5°N – 32.5°N
-- Selected for: high agricultural burning intensity, clear seasonal signal,
-  well-documented ground-truth burning calendar
-- **Pilot study only** — results are not generalizable without further validation
+- **Bounding coordinates:** 73.8°E – 77.5°E, 29.5°N – 32.5°N
+- **Selection rationale:** Selected for its regional agricultural crop-residue burning relevance, documented seasonal burning patterns and availability of historical satellite observations. Published seasonal crop-residue burning references provide contextual interpretation, not pixel-level ground truth.
+- **Pilot boundary:** Pilot study only — results are not generalizable to other global biomes or fuel complexes without local recalibration.
 
-### Platforms analysed (pilot)
-- **MODIS Aqua** (primary — similar overpass time to Suomi-NPP)
-- **VIIRS Suomi-NPP** (primary comparison partner)
-
-Terra MODIS and NOAA-20/21 VIIRS are excluded from the pilot calibration
-to maintain a consistent platform pair.
+### Platform Selection & Overpass Dynamics
+- **Selected Pilot Pair:** **Aqua MODIS C6.1 SP** and **Suomi-NPP VIIRS C2 SP** were selected as the consistent satellite comparison pair.
+- **Excluded Platforms:** Terra MODIS (morning overpass ~10:30 local time), NOAA-20 VIIRS, and NOAA-21 VIIRS were excluded from the calibration engine to maintain orbital and observation-time consistency.
+- **Overpass Timing Note:** Aqua MODIS and Suomi-NPP VIIRS share afternoon sun-synchronous orbits, but actual acquisition times vary continuously due to differing orbital swaths. Time differences are evaluated empirically from observation timestamps rather than assumed to be identical.
         """)
 
-        # Data provenance
+        # ── Data-Processing Scope & Flow ──────────────────────────────────────
         st.divider()
-        st.markdown("### Data provenance & Observation Accounting")
+        st.markdown("### 🔄 Data-Processing Scope & Pipeline Flow")
+        st.markdown("""
+```
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│ 1. Raw NASA FIRMS SP CSVs                                                       │
+│    • Aqua MODIS C6.1 SP (8,294 records) + Suomi-NPP VIIRS C2 SP (33,853 records)│
+└────────────────────────────────────────┬────────────────────────────────────────┘
+                                         ▼
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│ 2. Normalization & Quality Assurance                                            │
+│    • Coordinate bounds [29.5°–32.5°N, 73.8°–77.5°E], UTC datetime, native conf. │
+└────────────────────────────────────────┬────────────────────────────────────────┘
+                                         ▼
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│ 3. 0.1° Geographic Grid Aggregation (~11 km)                                   │
+│    • Diurnal pass separation (Day/Night), cell detection counts, and summed FRP │
+│    • 6,772 diurnal cell observations across 6,751 unique calendar cell-dates    │
+└────────────────────────────────────────┬────────────────────────────────────────┘
+                                         ▼
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│ 4. Co-Active Cell-Day Pairing (Strict Kharif Peak Window)                       │
+│    • Training (Nov 1–10, 2022): N = 1,312 pairs                                 │
+│    • Evaluation (Nov 1–10, 2023): N = 1,242 pairs | Total strict N = 2,554      │
+└────────────────────────────────────────┬────────────────────────────────────────┘
+                                         ▼
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│ 5. Calibration Engine & Reliability Gate                                        │
+│    • Model C (Context OLS): held-out MAE = 26.19 MW (+8.1% validation bias)     │
+│    • Reliability Gate: In-domain (Green) / Subgroup Caution (Yellow) / Abstain  │
+└─────────────────────────────────────────────────────────────────────────────────┘
+```
+        """)
+
+        # ── Data provenance & Observation Accounting ──────────────────────────
+        st.divider()
+        st.markdown("### 📊 Data Provenance & Observation Accounting")
         modis = data["modis"]
         viirs = data["viirs"]
 
         col1, col2 = st.columns(2)
-        col1.metric("MODIS records loaded", f"{len(modis):,}")
-        col2.metric("VIIRS records loaded", f"{len(viirs):,}")
+        col1.metric("MODIS Records Loaded", f"{len(modis):,}", "8,294 Aqua · 178 Terra")
+        col2.metric("VIIRS Records Loaded", f"{len(viirs):,}", "33,853 Suomi-NPP")
 
+        st.markdown("#### Complete Exploratory Archive Accounting (2022–2023 Pilot Ingestion)")
         st.markdown("""
 | Unit Level | Count | Definition & Discrepancy Reconciliation |
 |:---|:---:|:---|
 | **Sensor-Specific Rows** | **9,332** | `(grid_id, acq_date, daynight, sensor)` entries in `grid_summary` ($2 \\times 2,560 + 488 + 3,724 = 9,332$) |
 | **Diurnal Cell Observations** | **6,772** | `(grid_id, acq_date, daynight)` entries in `disagreement` (6,655 Day, 117 Night) |
 | **Unique Calendar Cell-Days** | **6,751** | Unique `(grid_id, acq_date)` combinations ($6,655 + 117 - 21\\text{ both} = 6,751$) |
-| **Co-Active Calibration Pairs** | **2,560** | Both sensors detected fire in cell on that pass (2,556 Day, 4 Night) |
-| **MODIS-Only Observations** | **488** | MODIS detected fire, VIIRS reported none (488 Day, 0 Night) |
-| **VIIRS-Only Observations** | **3,724** | VIIRS detected fire, MODIS reported none (3,611 Day, 113 Night) |
+| **Co-Active Exploratory Diurnal Observations** | **2,560** | Both sensors detected fire in cell on that pass (2,556 Day, 4 Night; includes exploratory API-probe dates) |
+| **MODIS-Only Observations** | **488** | MODIS-only: no corresponding VIIRS detection recorded in the same diurnal grid-cell aggregation (488 Day, 0 Night) |
+| **VIIRS-Only Observations** | **3,724** | VIIRS-only: no corresponding MODIS detection recorded in the same diurnal grid-cell aggregation (3,611 Day, 113 Night) |
         """)
 
+        st.markdown("#### Strict Scientific Evaluation Population (Strict Nov 1–10 Kharif Peak)")
+        st.markdown("""
+| Cohort / Split | Dates | Co-Active Observations | Role in Scientific Evaluation |
+|:---|:---|:---:|:---|
+| **2022 Training Window** | Nov 1–10, 2022 | **1,312** | Model parameter estimation & date-grouped cross-validation |
+| **2023 Evaluation Window** | Nov 1–10, 2023 | **1,242** | Held-out comparative evaluation (MAE = 26.19 MW, bias = +8.1%) |
+| **Total Strict Pilot Population** | *Both Nov windows* | **2,554** | Strict Kharif peak observations (API-probe dates excluded) |
+        """)
 
         if data["using_real_data"]:
-            if not modis.empty:
-                files = modis["source_file"].unique()
-                col1.caption(f"From {len(files)} files")
-            if not viirs.empty:
-                files = viirs["source_file"].unique()
-                col2.caption(f"From {len(files)} files")
+            if not modis.empty and not viirs.empty:
+                st.caption(
+                    "📁 **Source Files Audit:** MODIS ingested across 23 non-empty CSV files "
+                    "(8,294 Aqua records [97.9%], 178 Terra records [2.1%]); "
+                    "VIIRS ingested across 24 CSV files (33,853 Suomi-NPP records [100.0%]). "
+                    "Terra records in exploratory files are excluded from the Aqua–VIIRS calibration pipeline."
+                )
         else:
             st.warning(
                 "Currently using **synthetic demonstration data**. "
                 "Download real NASA data with the data download script before submission."
             )
+
+        # ── Key Data Limitations ──────────────────────────────────────────────
+        st.divider()
+        st.markdown("### ⚠️ Key Data Limitations")
+        st.markdown(r"""
+- **Thermal Anomalies, Not Ground Truth:** NASA FIRMS active-fire detections represent satellite-observed thermal radiometric anomalies, not field-verified wildfire or burn perimeter events.
+- **Footprint Enlargement:** Nominal pixel resolution (375 m for VIIRS, 1 km for MODIS) applies at nadir. At off-nadir scan angles, geometric projection expands the actual ground footprint substantially.
+- **Overpass Asynchrony:** Aqua and Suomi-NPP orbits do not coincide exactly in time; observed orbital time differences ($\Delta t \approx 1.5\text{--}13.4\text{ min}$) capture real-world agricultural fire growth and decay.
+- **Analytical Bounding Box:** The study bounding box ($73.8^\circ\text{--}77.5^\circ\text{E}, 29.5^\circ\text{--}32.5^\circ\text{N}$) represents an analytical rectangular envelope, not an administrative state boundary.
+- **Domain-Specific Validity:** Harmonization parameters and empirical error envelopes are valid strictly for the evaluated pilot conditions (Punjab & Haryana, post-monsoon Kharif peak) and must be recalibrated for other ecosystems.
+        """)
 
     with tab2:
         st.markdown("""
