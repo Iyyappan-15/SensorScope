@@ -2,11 +2,19 @@
 
 > **Tagline:** *Two satellites see the same Earth differently. We explain why, measure the difference, and build a more reliable historical fire-activity record.*
 
+[![Live App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://sensorscope.streamlit.app)
+[![GitHub Repository](https://img.shields.io/badge/GitHub-Iyyappan--15%2FSensorScope-181717.svg?logo=github)](https://github.com/Iyyappan-15/SensorScope)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![NASA FIRMS](https://img.shields.io/badge/data-NASA%20FIRMS%20SP-red.svg)](https://firms.modaps.eosdis.nasa.gov/)
-[![Streamlit App](https://img.shields.io/badge/app-Streamlit-FF4B4B.svg)](https://streamlit.io/)
 [![Tests Passing](https://img.shields.io/badge/tests-10%20passed-brightgreen.svg)]()
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
+---
+
+### 🌐 Live Public Deployment
+- 🔗 **Interactive Web Application:** **[https://sensorscope.streamlit.app](https://sensorscope.streamlit.app)**
+- 💻 **Public GitHub Repository:** **[https://github.com/Iyyappan-15/SensorScope](https://github.com/Iyyappan-15/SensorScope)**
+- 🏷️ **Pre-Event Checkpoint Branch:** **[pre-event-mvp-checkpoint](https://github.com/Iyyappan-15/SensorScope/tree/pre-event-mvp-checkpoint)**
 
 ---
 
