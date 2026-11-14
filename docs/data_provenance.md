@@ -24,8 +24,8 @@
 - **Pilot Bounding Box:** `[73.8°E, 29.5°N, 77.5°E, 32.5°N]`  
   *Clarification:* This is a regular rectangular bounding box enclosing the Punjab and Haryana agricultural burning region. It is **not** an administrative boundary clip.
 - **Acquisition Dates:**
-  - Training Window: `2022-11-01` to `2022-11-10` (Peak Kharif stubble burning)
-  - Held-Out Evaluation Window: `2023-11-01` to `2023-11-10` (Subsequent year peak Kharif)
+  - Training Window: `2022-11-01` to `2022-11-10` (Strict November 1–10 post-monsoon window)
+  - Held-Out Evaluation Window: `2023-11-01` to `2023-11-10` (Subsequent year November 1–10 post-monsoon window)
   - Ancillary Spring Season Check: `2022-04-01` to `2022-05-31` and `2023-04-01` to `2023-05-31` (Rabi season)
 
 ---

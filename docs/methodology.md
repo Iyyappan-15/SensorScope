@@ -32,7 +32,7 @@ Following **Li et al. (2018)**:
 
 ### 1.4 Training-Period Reconciliation & Cross-Validation Strategy
 - **Training Window Definition:**
-  - The core scientific training window is the **peak Kharif burning period: November 1 to November 10, 2022** ($n=1,312$).
+  - The core scientific training window is the **synchronized post-monsoon burning window: November 1 to November 10, 2022** ($n=1,312$).
   - Initial MAP_KEY API test probe files (`2022-05-31_d1.csv` [1 pair] and `2022-11-30_d1.csv` [1 pair]) contributed 2 extraneous records (0.15% of data). Whether evaluated with ($n=1,314$) or without ($n=1,312$) these probe records, model coefficients and validation MAE change by less than $0.05\text{ MW}$.
 - **Five-Fold Date-Grouped Cross-Validation:**
   - Observations from the same acquisition date are kept strictly within either train or validation folds using `GroupKFold(n_splits=5)`.

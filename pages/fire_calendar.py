@@ -265,7 +265,7 @@ def render() -> None:
         )
         st.plotly_chart(fig3, use_container_width=True)
         st.caption(
-            "Oct–Nov shows the post-monsoon Kharif stubble burning peak. "
+            "Oct–Nov shows the post-monsoon stubble burning peak. "
             "Apr–May shows the pre-monsoon Rabi stubble burning peak. "
             "These patterns are consistent with reported regional agricultural burning seasons."
         )

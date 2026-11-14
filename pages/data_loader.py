@@ -61,14 +61,14 @@ def load_data() -> dict:
     disagree = compute_disagreement(grid_summary)
     pairs = extract_paired_samples(disagree)
 
-    # Strict Kharif Calibration Cohort (Strict Nov 1–10, 2022 & 2023 window: 2,554 co-active pairs)
+    # Strict November 1–10 calibration cohort (Strict Nov 1–10, 2022 & 2023 window: 2,554 co-active pairs)
     strict_dates = [f"2022-11-{d:02d}" for d in range(1, 11)] + [f"2023-11-{d:02d}" for d in range(1, 11)]
     combined_strict = combined[combined["acq_date"].isin(strict_dates)].copy().reset_index(drop=True)
     grid_strict = build_grid_summary(combined_strict)
     disagree_strict = compute_disagreement(grid_strict)
     pairs_strict = extract_paired_samples(disagree_strict)
 
-    # Scientific calibration engine is evaluated strictly on the strict Kharif cohort (1,312 train / 1,242 eval)
+    # Scientific calibration engine is evaluated strictly on the strict November 1–10 cohort (1,312 train / 1,242 eval)
     cal_results = run_all_calibrations(pairs_strict) if not pairs_strict.empty else {}
 
     # Reliability table — use best trained model

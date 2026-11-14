@@ -56,7 +56,7 @@ SensorScope has undergone an independent, evidence-based read-only readiness aud
 | **Unique Calendar Cell-Dates** | **6,751** | `len(disagreement.drop_duplicates([grid_id, acq_date]))` | Verified: $6,655 + 117 - 21\text{ (both)} = 6,751$. | **PASS** |
 | **Day/Night Co-Occurrences** | **21** | Count of `(grid_id, acq_date)` pairs observed in both Day & Night | Verified set intersection of Day and Night cell-dates. | **PASS** |
 | **Exploratory Co-Active Population** | **2,560** | All raw CSV files loaded including 4 API probe files | Ingested via glob; contains 6 probe records from May 31 & Nov 30. | **PASS** |
-| **Strict Kharif Study Population** | **2,554** | Filtered strictly to core Nov 1–10 files | 1,312 training (2022) + 1,242 evaluation (2023) $= 2,554$. | **PASS** |
+| **Strict November 1–10 Calibration Cohort** | **2,554** | Filtered strictly to core Nov 1–10 files | 1,312 training (2022) + 1,242 evaluation (2023) $= 2,554$. | **PASS** |
 | **Candidate Association Sample** | **5,000** | `combined.sample(5000, random_state=42)` | 1,013 MODIS (20.26%) + 3,987 VIIRS (79.74%) across 23 dates. | **PASS** |
 | **Strict Model B Fitted RMA Slope** | **0.80528** | $(\sigma(y_{\text{trn}}) / \sigma(x_{\text{trn}})) \cdot \text{sgn}(\rho)$ on 1,312 train pairs | Verified exactly from source code execution. Intercept $= 1.4247\text{ MW}$. | **PASS** |
 | **Strict Model A Val MAE** | **30.9304 MW** | Mean Absolute Error of raw VIIRS FRP vs MODIS FRP on 1,242 pairs | Baseline identity error. Validation bias $= +6.88\%$. | **PASS** |

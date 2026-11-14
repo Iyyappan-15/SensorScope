@@ -226,7 +226,7 @@ def render() -> None:
             )
             st.plotly_chart(fig3, use_container_width=True)
             st.caption(
-                "• **Post-monsoon** (Oct–Nov, n=6,731): Kharif burning peak (mean Δ count = +3.76).<br>"
+                "• **Post-monsoon** (Oct–Nov, n=6,731): Post-monsoon agricultural burning peak (mean Δ count = +3.76).<br>"
                 "• **Pre-monsoon** (Mar–May, n=41): Rabi harvest burning (mean Δ count = +1.12).<br>"
                 "*Note: Observational archive data, not a controlled seasonal experiment. Monsoon and winter passes are unrepresented in this pilot archive.*",
                 unsafe_allow_html=True,

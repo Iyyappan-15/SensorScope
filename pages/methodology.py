@@ -79,9 +79,10 @@ We use **Standard Processing (SP)** data because it provides an internally consi
 └────────────────────────────────────────┬────────────────────────────────────────┘
                                          ▼
 ┌─────────────────────────────────────────────────────────────────────────────────┐
-│ 4. Co-Active Cell-Day Pairing (Strict Kharif Peak Window)                       │
-│    • Training (Nov 1–10, 2022): N = 1,312 pairs                                 │
-│    • Evaluation (Nov 1–10, 2023): N = 1,242 pairs | Total strict N = 2,554      │
+│ 4. Co-Active Cell-Day Pairing (Strict November 1–10 Cohort)                     │
+│    • Training (Nov 1–10, 2022): N = 1,312 observations                          │
+│    • Comparative Evaluation (Nov 1–10, 2023): N = 1,242 observations            │
+│    • Total strict calibration cohort: N = 2,554 co-active observations          │
 └────────────────────────────────────────┬────────────────────────────────────────┘
                                          ▼
 ┌─────────────────────────────────────────────────────────────────────────────────┐
@@ -114,23 +115,24 @@ We use **Standard Processing (SP)** data because it provides an internally consi
 | **VIIRS-Only Observations** | **3,724** | VIIRS-only: no corresponding MODIS detection recorded in the same diurnal grid-cell aggregation (3,611 Day, 113 Night) |
         """)
 
-        st.markdown("#### Strict Scientific Evaluation Population (Strict Nov 1–10 Kharif Peak)")
+        st.markdown("#### Strict Scientific Calibration Cohort (Strict November 1–10 Window)")
         st.markdown("""
 | Cohort / Split | Dates | Co-Active Observations | Role in Scientific Evaluation |
 |:---|:---|:---:|:---|
 | **2022 Training Window** | Nov 1–10, 2022 | **1,312** | Model parameter estimation & date-grouped cross-validation |
-| **2023 Evaluation Window** | Nov 1–10, 2023 | **1,242** | Held-out comparative evaluation (MAE = 26.19 MW, bias = +8.1%) |
-| **Total Strict Pilot Population** | *Both Nov windows* | **2,554** | Strict Kharif peak observations (API-probe dates excluded) |
+| **2023 Comparative Evaluation** | Nov 1–10, 2023 | **1,242** | Comparative model evaluation across Models A, B, and C (MAE = 26.19 MW, bias = +8.06%) |
+| **Total Strict Calibration Cohort** | *Both Nov windows* | **2,554** | Strict November 1–10 observations (4 single-day probe files excluded) |
         """)
 
         if data["using_real_data"]:
             if not modis.empty and not viirs.empty:
                 st.caption(
-                    "📁 **Source Files Audit:** MODIS ingested across 23 non-empty CSV files "
+                    "📁 **Source Files & 14-Row MODIS Reconciliation:** Total MODIS archive contains 8,472 raw records across 24 CSV files "
                     "(8,294 Aqua records [97.9%], 178 Terra records [2.1%]); "
                     "VIIRS ingested across 24 CSV files (33,853 Suomi-NPP records [100.0%]). "
-                    "Within the strict November 1–10 calibration window, MODIS records comprise 8,284 Aqua detections (97.9%) "
-                    "and 174 morning Terra detections (2.1%) naturally present in the standard NASA FIRMS daily area products."
+                    "The strict November 1–10 calibration cohort contains 8,458 MODIS records (8,284 Aqua [97.9%], 174 Terra [2.1%]) across 20 core daily files. "
+                    "The exact 14-record difference (8,472 - 8,458 = 14; 10 Aqua, 4 Terra) comes from 4 single-day exploratory API probe files outside the Nov 1–10 window "
+                    "(MODIS_SP_2022-05-31_d1: 2 Terra; MODIS_SP_2022-11-30_d1: 4 Aqua; MODIS_SP_2023-05-31_d1: 0; MODIS_SP_2023-11-30_d1: 6 Aqua, 2 Terra)."
                 )
         else:
             st.warning(
@@ -146,7 +148,7 @@ We use **Standard Processing (SP)** data because it provides an internally consi
 - **Footprint Enlargement:** Nominal pixel resolution (375 m for VIIRS, 1 km for MODIS) applies at nadir. At off-nadir scan angles, geometric projection expands the actual ground footprint substantially.
 - **Overpass Asynchrony:** Aqua and Suomi-NPP orbits do not coincide exactly in time; observed orbital time differences ($\Delta t \approx 1.5\text{--}13.4\text{ min}$) capture real-world agricultural fire growth and decay.
 - **Analytical Bounding Box:** The study bounding box ($73.8^\circ\text{--}77.5^\circ\text{E}, 29.5^\circ\text{--}32.5^\circ\text{N}$) represents an analytical rectangular envelope, not an administrative state boundary.
-- **Domain-Specific Validity:** Harmonization parameters and empirical error envelopes are valid strictly for the evaluated pilot conditions (Punjab & Haryana, post-monsoon Kharif peak) and must be recalibrated for other ecosystems.
+- **Domain-Specific Validity:** Harmonization parameters and empirical error envelopes are valid strictly for the evaluated pilot conditions (Punjab & Haryana, post-monsoon burning peak) and must be recalibrated for other ecosystems.
         """)
 
     with tab2:
@@ -221,15 +223,15 @@ RMA slope: $b = \\text{std}(FRP_{MODIS}) / \\text{std}(FRP_{VIIRS}) \\times \\te
 OLS multi-feature linear regression utilizing strictly predictor-side observations:
 $$\\hat{FRP}_{MODIS} = \\beta_0 + \\beta_1 \\cdot FRP_{VIIRS} + \\beta_2 \\cdot Count_{VIIRS} + \\beta_3 \\cdot Is\\_Night$$
 
-Features include summed VIIRS FRP (MW), cluster detection count, and a binary day/night flag ($1$ if Night, $0$ if Day). Zero-variance seasonal features (such as cyclic month in a single-season Kharif pilot) are excluded to maintain statistical validity.
+Features include summed VIIRS FRP (MW), cluster detection count, and a binary day/night flag ($1$ if Night, $0$ if Day). Zero-variance seasonal features (such as cyclic month in a single-season pilot) are excluded to maintain statistical validity.
 
 ### Split Design & Evaluation Strategy
-| Split / Cohort | Window | Co-Active Pairs | Purpose & Evaluation Role |
+| Split / Cohort | Window | Co-Active Observations | Purpose & Evaluation Role |
 |---|---|:---:|---|
 | **Training Split** | Nov 1–10, 2022 | **1,312** | Model parameter estimation & 5-fold date-grouped cross-validation |
-| **Held-Out Evaluation Split** | Nov 1–10, 2023 | **1,242** | Held-out comparative model evaluation & Reliability Gate threshold assessment |
+| **Comparative Evaluation Split** | Nov 1–10, 2023 | **1,242** | Comparative model evaluation across Models A, B, and C (MAE = 26.19 MW, bias = +8.06%) |
 
-*Methodological Note:* November 2023 was used for comparative model evaluation across Models A, B, and C; cross-validation across acquisition dates is performed via GroupKFold (unweighted mean fold MAE = 32.01 MW). The pilot archive focuses on the 2022 and 2023 Kharif agricultural burning windows.
+*Methodological Note:* November 2023 was used for comparative model evaluation across Models A, B, and C; cross-validation across acquisition dates is performed via GroupKFold (unweighted mean fold MAE = 32.01 MW). The pilot archive focuses on the 2022 and 2023 post-monsoon agricultural burning windows.
 
 ### Reliability gate
 The reliability gate operates independently of model training.
@@ -286,7 +288,7 @@ observation flags and cloud masks — not available in FIRMS hotspot CSVs.
 
 ### 4. Temporal coverage & latency
 Standard Processing (SP) latency is typically 2–3 months, although processing delays can sometimes extend up to 5 months.
-The pilot analysis focuses strictly on the 2022 and 2023 Kharif agricultural burning windows and should be treated as a methodological pilot demonstration,
+The pilot analysis focuses strictly on the 2022 and 2023 post-monsoon agricultural burning windows and should be treated as a methodological pilot demonstration,
 not a continuous multi-decadal historical inventory.
 
 ### 5. Spatial scale

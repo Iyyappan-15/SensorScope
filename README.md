@@ -80,22 +80,25 @@ Tested on real NASA FIRMS Standard Processing data over **Punjab & Haryana, Indi
 - **Sensor-specific grid records:** 9,332
 - **Diurnal cell observations (`grid_id`, `acq_date`, `daynight`):** 6,772 (6,655 Day, 117 Night)
 - **Unique calendar cell-dates (`grid_id`, `acq_date`):** 6,751 (21 cell-dates observed in both Day and Night: $6,751 + 21 = 6,772$)
-- **Co-active exploratory pairs:** 2,560 (2,556 Day, 4 Night) | **MODIS-only:** 488 | **VIIRS-only:** 3,724
+- **Co-active exploratory observations:** 2,560 (2,556 Day, 4 Night) | **MODIS-only:** 488 | **VIIRS-only:** 3,724
+- **Raw MODIS records:** 8,472 (8,294 Aqua [97.9%], 178 Terra [2.1%]) across 24 CSV files.
 
-### 2. Strict Scientific Calibration Cohort (Strict Nov 1–10 Kharif Peak Window)
-Evaluated strictly on the primary November agricultural burning window (API probe files excluded; $N=2,554$ total co-active pairs):
-- **Training split (Nov 1–10, 2022):** 1,312 co-active pairs
-- **Held-out comparative evaluation split (Nov 1–10, 2023):** 1,242 co-active pairs
+### 2. Strict Scientific Calibration Cohort (Strict November 1–10 Calibration Cohort)
+Evaluated strictly on the synchronized November 1–10 agricultural burning window across 20 core daily files ($N=2,554$ strict co-active cell/date/diurnal observations; 1,312 training and 1,242 comparative-evaluation observations):
+- **Raw MODIS records in strict cohort:** 8,458 (8,284 Aqua [97.9%], 174 Terra [2.1%]) across 20 files.
+- **The 14-record MODIS difference ($8,472 - 8,458 = 14$):** Exactly 14 records (10 Aqua, 4 Terra) originate from 4 exploratory single-day API probe files outside the Nov 1–10 window (`2022-05-31_d1`: 2 Terra; `2022-11-30_d1`: 4 Aqua; `2023-05-31_d1`: 0; `2023-11-30_d1`: 6 Aqua + 2 Terra) and are excluded from the strict calibration cohort.
+- **Training partition (Nov 1–10, 2022):** 1,312 strict co-active cell/date/diurnal observations
+- **Comparative evaluation partition (Nov 1–10, 2023):** 1,242 strict co-active cell/date/diurnal observations
 
-| Model | Methodology | Train MAE | Held-Out Val MAE | Val Bias % | Spearman $\rho$ | Reliability Status |
+| Model | Methodology | Train MAE | Comparative Eval MAE | Eval Bias % | Spearman $\rho$ | Reliability Status |
 |---|---|---|---|---|---|:---:|
 | **Model A: Identity** | Raw VIIRS (No correction) | 40.28 MW | 30.9304 MW | +6.88% | 0.465431 | 🟢 Baseline |
 | **Model B: Global RMA** | Reduced Major Axis ($\text{slope}=0.80528$, $\text{intercept}=1.4247\text{ MW}$) | 34.93 MW | 27.2526 MW | -10.55% | 0.465432 | 🟢 Supported |
 | **Model C: Context-Aware** | Predictor-side OLS (VIIRS FRP + Count + Night) | 30.42 MW | **26.1863 MW** | **+8.06%** | **0.467452** | 🟢 **Best Model** |
 
-> **Scientific Finding:** On the strict Kharif evaluation cohort ($N=2,554$), context-aware calibration reduces comparative evaluation period Mean Absolute Error from **30.93 MW down to 26.19 MW** (an error reduction of 15.3% over identity) without target leakage. In 5-fold date-grouped cross-validation across acquisition dates, pooled out-of-fold MAE is **31.5128 MW**. Descriptive empirical residual envelopes achieve **94.6% coverage** (1,175/1,242) on the held-out November 2023 comparative evaluation period.
+> **Scientific Finding:** On the strict November 1–10 calibration cohort ($N=2,554$ co-active cell/date/diurnal observations), context-aware calibration reduces comparative evaluation period Mean Absolute Error from **30.93 MW down to 26.19 MW** (an error reduction of 15.3% over identity) without target leakage. In 5-fold date-grouped cross-validation across acquisition dates, pooled out-of-fold MAE is **31.5128 MW**. Descriptive empirical residual envelopes achieve **94.6% coverage** (1,175/1,242) on the held-out November 2023 comparative evaluation period.
 
-*Methodological Note: November 2023 was evaluated as a held-out comparative evaluation period across models, not an untouched multi-year final test set. Regional calibration results do not establish independent cell-level validation for every individual grid cell.*
+*Methodological Note: November 2023 was evaluated as a comparative evaluation period across models, not an untouched multi-year final test set. The 2,554 observations represent co-active cell/date/diurnal observations within 0.1° grid cells, not confirmed physical fire pairs. Regional calibration results do not establish independent cell-level validation for every individual grid cell.*
 
 
 ---

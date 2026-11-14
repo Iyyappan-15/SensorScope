@@ -55,13 +55,13 @@ def render() -> None:
         return
 
     st.success(
-        f"**{len(pairs):,}** strictly selected co-active grid-cell observations evaluated for calibration "
-        f"(1,312 Training pairs [Nov 1–10, 2022] · 1,242 Held-out Evaluation pairs [Nov 1–10, 2023])."
+        f"**{len(pairs):,}** strict co-active cell/date/diurnal observations evaluated for calibration "
+        f"(1,312 Training observations [Nov 1–10, 2022] · 1,242 Comparative-evaluation observations [Nov 1–10, 2023])."
     )
     st.caption(
-        "ℹ️ **Population Identification:** Displayed calibration models are evaluated strictly on the 2,554 co-active cell-day "
-        "observations from the primary November Kharif burning peak. The broader exploratory archive contains 2,560 co-active observations "
-        "(including exploratory API test probe dates)."
+        "ℹ️ **Population Identification:** Displayed calibration models are evaluated strictly on the 2,554 strict co-active cell/date/diurnal "
+        "observations from the synchronized November 1–10 calibration cohort. The broader exploratory archive contains 2,560 co-active observations "
+        "(including 4 exploratory single-day API test probe files)."
     )
 
     # ── Scatter: raw relationship ──────────────────────────────────────────────

@@ -31,14 +31,14 @@ Browser inspection conducted via automated webview session at `http://localhost:
 |:---|:---|:---|:---:|
 | **Page 1: Overview** | Map Center & Coverage | Centered over Punjab & Haryana (~30.8°N, 76.0°E); displays active MODIS (orange) and VIIRS (blue) hotspot markers. | **PASS** |
 | | Basemap Selector | Seamlessly toggles between Satellite (ESRI World Imagery), Light (OSM), Positron (Light), and Dark Matter without losing zoom/center. | **PASS** |
-| | Observation Filters | Observation Window ("Strict Kharif Peak Nov 1–10" vs "All Passes") and Day/Night pass filter update marker traces dynamically. | **PASS** |
+| | Observation Filters | Observation Window ("Strict November 1–10 Calibration Cohort" vs "All Passes") and Day/Night pass filter update marker traces dynamically. | **PASS** |
 | | Hotspot Tooltips | Displays Date, Acquisition UTC time, FRP (MW), Confidence (categorical 'n'/'l'/'h' for VIIRS; numeric % for MODIS), and Day/Night flag. Does not claim probability of fire. | **PASS** |
 | | Monthly Activity Chart | Grouped bar chart with Y-axis labelled "Raw hotspot records" (MODIS vs VIIRS). | **PASS** |
 | | Observation Asymmetry Chart | Horizontal bar chart with categories: "Both Sensors Detected", "VIIRS-only observations", "MODIS-only observations". Subtitle cites 6,772 diurnal observations (6,751 unique dates). | **PASS** |
 | | Reliability Gate Cards | 3 cards rendered: 🟢 Reliable (Aggregate Pilot Model), 🟡 Caution (Subgroup Alert: Δt ≤ 5 min +26.9% bias), 🔴 Abstain (Safety Guard: N < 20 or FRP > 279.18 MW). | **PASS** |
 | | Spatial Applicability Table | Expander shows 481 active 0.1° cells. Explanatory banner clarifies that metrics reflect aggregate regional Model C applicability, NOT independent per-cell validation. | **PASS** |
 | **Page 2: Disagreement Atlas** | Observation Breakdown KPIs | 4 cards render exact values: Total Diurnal Cell Obs (6,772), Both sensors detected (2,560 / 37.8%), MODIS only (488 / 7.2%), VIIRS only (3,724 / 55.0%). | **PASS** |
-| | Population Note Banner | Explicitly distinguishes 6,772 exploratory diurnal cell observations (6,751 unique dates) from the 2,554 strict Kharif evaluation population. Preserves warning that single-sensor detection does not prove missed physical fire. | **PASS** |
+| | Population Note Banner | Explicitly distinguishes 6,772 exploratory diurnal cell observations (6,751 unique dates) from the 2,554 strict November 1–10 calibration cohort. Preserves warning that single-sensor detection does not prove missed physical fire. | **PASS** |
 | | Spatial Asymmetry Map | Title: "Spatial reporting asymmetry (VIIRS − MODIS)". Neutral legend: "More VIIRS-reported records" / "More MODIS-reported records" / "Similar reported counts". Aggregation formula explicitly cited: $\Delta C = \text{Mean}(C_{\text{VIIRS}} - C_{\text{MODIS}})$. | **PASS** |
 | | Minimum Pass Slider | Slider labelled "Min Diurnal Observation Passes per Cell" (range 1–15). Filters cells dynamically. | **PASS** |
 | | Day / Night Chart | Subtitle: "Mean difference in reported hotspot counts per diurnal cell observation (VIIRS − MODIS)". X-axis ticks: `☀️ Day (n=6,655)` and `🌙 Night (n=117)`. Mean Δ count: +3.79 Day, +1.32 Night. | **PASS** |
@@ -48,7 +48,7 @@ Browser inspection conducted via automated webview session at `http://localhost:
 | | 9-Cell Sensitivity Matrix | Expander renders human-readable table: `Time Window (min)`, `Spatial Radius (km)`, `MODIS Associated (%)`, `MODIS Ambiguous (%)`, `VIIRS Associated (%)`, `VIIRS Ambiguous (%)`, `Mean Overpass Δt (min)`. Raw counts in nested expander. Explains ambiguity escalation (91.5% at 30 min / 20 km). | **PASS** |
 | **Page 3: Calibration Lab** | Paired Observations Count | Success banner: "**2,554** strictly selected co-active grid-cell observations evaluated for calibration (1,312 Training pairs · 1,242 Held-out Evaluation pairs)." | **PASS** |
 | | Raw Scatterplot | Scatterplot of paired VIIRS vs MODIS FRP with dashed 1:1 line and Day/Night color coding. | **PASS** |
-| | Model Performance Table | Displays Train and Val splits for Model A (Identity), Model B (Global RMA), and Model C (Context OLS). Shows MAE, RMSE, Mean Bias (MW), Bias %, and Spearman r on strict Kharif cohort ($N=2,554$). | **PASS** |
+| | Model Performance Table | Displays Train and Val splits for Model A (Identity), Model B (Global RMA), and Model C (Context OLS). Shows MAE, RMSE, Mean Bias (MW), Bias %, and Spearman r on strict November 1–10 calibration cohort ($N=2,554$). | **PASS** |
 | | Reliability Gate Expanders | Expanders for Model C, Model B, Model A render status badges (🟢 Reliable for all three under aggregate pilot conditions). | **PASS** |
 | | Model C Equation Text | In the Model C expander, verified true multi-feature OLS equation: `FRP_MODIS_ref = 28.43 + 0.228 × FRP_VIIRS + 1.053 × Count_VIIRS + 2.240 × Is_Night`. | **PASS** |
 | | Before / After Scatterplot | Compares raw VIIRS vs calibrated VIIRS against 1:1 line using true model predictions (`model_obj.predict()`). Green diamonds noticeably pull toward 1:1 line. | **PASS** |
@@ -76,7 +76,7 @@ Browser inspection conducted via automated webview session at `http://localhost:
 | | Ground-Truth Clarification | Explicitly states: "These are candidate associations, not confirmed fire identity. An unmatched record does not automatically imply that the other sensor missed a real fire." | **PASS** |
 | **📐 Calibration** | Scientific Basis | Cites Li et al. (2018) for RMA regression and Sofiev & Kouznetsov (2026) for detection limits. | **PASS** |
 | | Model Specifications | Models A, B, C defined. Model B RMA formula stated correctly: $b = \text{std}(y) / \text{std}(x) \times \text{sign}(r)$. | **PASS** |
-| | Model C Equation Wording | Text describes multi-feature OLS ($\beta_0 + \beta_1 \cdot FRP + \beta_2 \cdot Count + \beta_3 \cdot Is\_Night$), and notes explicit exclusion of cyclic month in single-season Kharif pilot. | **PASS** |
+| | Model C Equation Wording | Text describes multi-feature OLS ($\beta_0 + \beta_1 \cdot FRP + \beta_2 \cdot Count + \beta_3 \cdot Is\_Night$), and notes explicit exclusion of cyclic month in single-season pilot. | **PASS** |
 | | Chronological Split Table | Table accurately describes 2022 Training Window ($n=1,312$) and 2023 Held-Out Comparative Evaluation ($n=1,242$), with no 2024 test split present. | **PASS** |
 | | Reliability Gate Table | Rules documented: 🟢 Green (≥50 pairs, bias ≤15%), 🟡 Yellow (20–50 pairs), 🔴 Red (<20 pairs or out-of-domain). | **PASS** |
 | **⚠️ Limitations** | 6 Explicit Boundaries | Documents: (1) Missing observation ≠ zero detection, (2) Calibration limited to paired subset, (3) Detection limits require Level-2 cloud masks, (4) Temporal SP processing lag, (5) 0.1° spatial scale sensitivity, (6) Regional specificity to Punjab/Haryana. | **PASS** |
@@ -113,7 +113,7 @@ $$\begin{aligned}
 
 *Finding:* Both sensors have strictly positive minimum FRP ($0.23\text{ MW}$ for VIIRS, $3.10\text{ MW}$ for MODIS). The value $0\text{ MW}$ on the histogram represents the axis origin, not an observed data point.
 
-### 4.3 Strict Kharif Peak Calibration Population ($N=2,554$)
+### 4.3 Strict November 1–10 Calibration Cohort ($N=2,554$)
 
 Filtering out the two 1-pair API probe files (`2022-05-31` and `2022-11-30`) yields the strict scientific calibration cohort:
 - **2022 Training Window (Nov 1–10, 2022):** $n = 1,312$ co-active cell-day pairs.
@@ -290,7 +290,7 @@ All code and documentation items identified during the audit cycle have been for
 - `pages/methodology.py`: Updated Model C description to multi-feature OLS without cyclic month. Split table updated to show 2022 Training ($n=1,312$) and 2023 Held-Out Comparative Evaluation ($n=1,242$) without an unrepresented 2024 test split.
 
 ### Item 5: Strict vs Exploratory Population Separation — **RESOLVED & VERIFIED**
-- `pages/data_loader.py`: Broad exploratory archive ($6,772$ diurnal cell obs, $2,560$ co-active pairs) preserved for Overview and Atlas; strict Kharif evaluation population ($2,554$ co-active pairs: $1,312$ train, $1,242$ eval) separated and fed to calibration engine. Metrics match strict evaluation benchmarks exactly.
+- `pages/data_loader.py`: Broad exploratory archive ($6,772$ diurnal cell obs, $2,560$ co-active pairs) preserved for Overview and Atlas; strict November 1–10 calibration cohort ($2,554$ co-active pairs: $1,312$ train, $1,242$ eval) separated and fed to calibration engine. Metrics match strict evaluation benchmarks exactly.
 
 ### Remaining External Deliverables (Non-Code)
 - **Slide Deck:** Presentation narrative script exists in `docs/PRESENTATION_NARRATIVE.md`; export to `.pdf` or `.pptx` required.

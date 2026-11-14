@@ -28,15 +28,15 @@ def render() -> None:
     data = load_data()
     data_source_banner(data["using_real_data"])
 
-    # ── 2. Headline Scientific KPI Cards (Strict Nov 1–10 Kharif Peak) ────────
+    # ── 2. Headline Scientific KPI Cards (Strict November 1–10 Cohort) ────────
     st.markdown("### 🔬 Audited Pilot Harmonization Population *(Strict Nov 1–10 Window)*")
     st.caption(
         "Audited pilot dataset for Reduced Major Axis (RMA) calibration, date-grouped cross-validation, and Model C evaluation."
     )
 
     sc1, sc2, sc3, sc4, sc5 = st.columns(5)
-    sc1.metric("2022 Training Pairs", "1,312", "Nov 1–10, 2022")
-    sc2.metric("2023 Evaluation Pairs", "1,242", "Nov 1–10, 2023")
+    sc1.metric("2022 Training Observations", "1,312", "Nov 1–10, 2022")
+    sc2.metric("2023 Evaluation Observations", "1,242", "Nov 1–10, 2023")
     sc3.metric("Co-active cell-day observations", "2,554", "Total Population")
     sc4.metric("Active Study Dates", "10 + 9", "19 Active Study Dates")
     sc5.metric("Model C Nov 2023 Evaluation MAE", "26.19 MW", "+8.1% Bias (Aggregate Pilot Gate: Green)")
@@ -86,9 +86,9 @@ def render() -> None:
         with ctrl3:
             period_selection = st.selectbox(
                 "Observation Window",
-                options=["Strict Kharif Peak (Nov 1–10)", "All Pilot Records (2022–2023)"],
+                options=["Strict November 1–10 Cohort", "All Pilot Records (2022–2023)"],
                 index=0,
-                help="Strict Kharif Peak filters to the audited Nov 1–10 calibration window.",
+                help="Filters to the audited November 1–10 calibration cohort (2,554 strict co-active observations).",
             )
 
         with ctrl4:
@@ -127,7 +127,7 @@ def render() -> None:
             df_map = df_map[df_map["daynight"] == "N"]
 
         # Observation window filter
-        if period_selection == "Strict Kharif Peak (Nov 1–10)":
+        if period_selection == "Strict November 1–10 Cohort":
             df_map["month_val"] = pd.to_datetime(df_map["acq_date"]).dt.month
             df_map["day_val"] = pd.to_datetime(df_map["acq_date"]).dt.day
             df_map = df_map[(df_map["month_val"] == 11) & (df_map["day_val"] <= 10)]
@@ -374,7 +374,7 @@ def render() -> None:
             st.plotly_chart(fig_monthly, use_container_width=True)
             st.caption(
                 "🔥 **Seasonal Activity Patterns:** The observed seasonal pattern coincides with reported regional agricultural burning periods "
-                "(post-monsoon Kharif paddy stubble in Oct–Nov; minor Rabi wheat residue in Apr–May). "
+                "(post-monsoon paddy stubble in Oct–Nov; minor Rabi wheat residue in Apr–May). "
                 "FIRMS hotspot detections do not independently establish the fuel type or cause of each fire. "
                 "Scientific calibration is evaluated strictly on the November peak."
             )
