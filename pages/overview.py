@@ -191,7 +191,7 @@ def render() -> None:
             "<b>FRP:</b> %{customdata[3]:.1f} MW<br>"
             "<b>Confidence:</b> %{customdata[4]}<br>"
             "<b>Pass:</b> %{customdata[5]}<extra></extra>",
-            marker=dict(size=5.5, line=dict(width=0.5, color="#ffffff")),
+            marker=dict(size=5.5),
         )
 
         # Optional 0.1° grid boundary overlay

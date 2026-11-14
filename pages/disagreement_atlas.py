@@ -131,7 +131,7 @@ def render() -> None:
                 "<b>Mean Δ count (VIIRS−MODIS):</b> %{customdata[0]:+.2f}<br>"
                 "<b>Active Days:</b> %{customdata[1]}<extra></extra>"
             ),
-            marker=dict(line=dict(width=0.8, color="#ffffff")),
+            marker=dict(opacity=0.8),
         )
 
         layout_dict = dict(
