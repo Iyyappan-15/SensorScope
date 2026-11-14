@@ -5,7 +5,7 @@
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![NASA FIRMS](https://img.shields.io/badge/data-NASA%20FIRMS%20SP-red.svg)](https://firms.modaps.eosdis.nasa.gov/)
 [![Streamlit App](https://img.shields.io/badge/app-Streamlit-FF4B4B.svg)](https://streamlit.io/)
-[![Tests Passing](https://img.shields.io/badge/tests-9%20passed-brightgreen.svg)]()
+[![Tests Passing](https://img.shields.io/badge/tests-10%20passed-brightgreen.svg)]()
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 ---
@@ -16,7 +16,7 @@ NASA has collected satellite active-fire observations for over two decades using
 - **MODIS (Terra & Aqua):** Nominal 1 km pixel resolution (2000–present)
 - **VIIRS (Suomi-NPP & NOAA-20/21):** Nominal 375 m pixel resolution (2012–present)
 
-Because MODIS and VIIRS have different spatial resolutions and detection characteristics, they produce **inconsistent fire-activity measurements**. VIIRS detects smaller, lower-intensity fires that MODIS misses. Comparing raw hotspot counts across sensor transition periods risks confusing satellite instrument sensitivity with real-world changes in burning.
+Because MODIS and VIIRS have different spatial resolutions (1 km vs 375 m), differing observation timing, and distinct sensor detection characteristics, they produce differences in reported active-fire hotspots. Comparing raw hotspot counts across sensor transition periods risks confusing satellite instrument sensitivity with real-world changes in burning.
 
 ```
 Long-Term Satellite Observation Transition:
@@ -74,21 +74,28 @@ Rather than naively merging hotspots or applying a black-box model everywhere, *
 
 ## 🧪 Validated Empirical Results (Real NASA FIRMS Data)
 
-Tested on real NASA FIRMS Standard Processing data over **Punjab & Haryana, India** (agricultural burning pilot study, Nov 2022 train vs Nov 2023 held-out comparative evaluation; rectangular bounding box `[73.8°E, 29.5°N, 77.5°E, 32.5°N]`):
+Tested on real NASA FIRMS Standard Processing data over **Punjab & Haryana, India** (analytical rectangular bounding box `[73.8°E, 29.5°N, 77.5°E, 32.5°N]`):
 
+### 1. Exploratory Archive Population (2022–2023 Pilot Ingestion)
 - **Sensor-specific grid records:** 9,332
 - **Diurnal cell observations (`grid_id`, `acq_date`, `daynight`):** 6,772 (6,655 Day, 117 Night)
 - **Unique calendar cell-dates (`grid_id`, `acq_date`):** 6,751 (21 cell-dates observed in both Day and Night: $6,751 + 21 = 6,772$)
-- **Co-active pairs:** 2,560 (2,556 Day, 4 Night) | **MODIS-only:** 488 | **VIIRS-only:** 3,724
+- **Co-active exploratory pairs:** 2,560 (2,556 Day, 4 Night) | **MODIS-only:** 488 | **VIIRS-only:** 3,724
 
+### 2. Strict Scientific Calibration Cohort (Strict Nov 1–10 Kharif Peak Window)
+Evaluated strictly on the primary November agricultural burning window (API probe files excluded; $N=2,554$ total co-active pairs):
+- **Training split (Nov 1–10, 2022):** 1,312 co-active pairs
+- **Held-out comparative evaluation split (Nov 1–10, 2023):** 1,242 co-active pairs
 
 | Model | Methodology | Train MAE | Held-Out Val MAE | Val Bias % | Spearman $\rho$ | Reliability Status |
 |---|---|---|---|---|---|:---:|
-| **Model A: Identity** | Raw VIIRS (No correction) | — | 30.8893 MW | +6.74% | 0.465330 | 🟢 Baseline |
-| **Model B: Global RMA** | Reduced Major Axis ($\text{slope}=0.80559$, $\text{intercept}=1.53\text{ MW}$) | 26.85 MW | 27.2156 MW | -10.38% | 0.465324 | 🟢 Supported |
-| **Model C: Context-Aware** | Predictor-side OLS (VIIRS FRP + Count + Night) | 25.10 MW | **26.2188 MW** | **+8.37%** | **0.467365** | 🟢 **Best Model** |
+| **Model A: Identity** | Raw VIIRS (No correction) | 40.28 MW | 30.9304 MW | +6.88% | 0.465431 | 🟢 Baseline |
+| **Model B: Global RMA** | Reduced Major Axis ($\text{slope}=0.80528$, $\text{intercept}=1.4247\text{ MW}$) | 34.93 MW | 27.2526 MW | -10.55% | 0.465432 | 🟢 Supported |
+| **Model C: Context-Aware** | Predictor-side OLS (VIIRS FRP + Count + Night) | 30.42 MW | **26.1863 MW** | **+8.06%** | **0.467452** | 🟢 **Best Model** |
 
-> **Scientific Finding:** Context-aware calibration reduces comparative evaluation period Mean Absolute Error from **30.89 MW down to 26.22 MW** on real NASA observations without any target leakage. In 5-fold date-grouped cross-validation, pooled out-of-fold MAE is **31.60 MW**. Out-of-fold training residual envelopes achieve **93.3% empirical coverage** on the 2023 comparative evaluation period.
+> **Scientific Finding:** On the strict Kharif evaluation cohort ($N=2,554$), context-aware calibration reduces comparative evaluation period Mean Absolute Error from **30.93 MW down to 26.19 MW** (an error reduction of 15.3% over identity) without target leakage. In 5-fold date-grouped cross-validation across acquisition dates, pooled out-of-fold MAE is **31.5128 MW**. Descriptive empirical residual envelopes achieve **94.6% coverage** (1,175/1,242) on the held-out November 2023 comparative evaluation period.
+
+*Methodological Note: November 2023 was evaluated as a held-out comparative evaluation period across models, not an untouched multi-year final test set. Regional calibration results do not establish independent cell-level validation for every individual grid cell.*
 
 
 ---

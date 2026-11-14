@@ -56,13 +56,20 @@ def load_data() -> dict:
         combined_assoc["match_min_dist_km"] = float("nan")
         combined_assoc["match_min_dt_min"] = float("nan")
 
-    # Disagreement
+    # Disagreement (Exploratory Archive: all ingested pilot records)
     grid_summary = build_grid_summary(combined)
     disagree = compute_disagreement(grid_summary)
-
-    # Calibration
     pairs = extract_paired_samples(disagree)
-    cal_results = run_all_calibrations(pairs) if not pairs.empty else {}
+
+    # Strict Kharif Calibration Cohort (Strict Nov 1–10, 2022 & 2023 window: 2,554 co-active pairs)
+    strict_dates = [f"2022-11-{d:02d}" for d in range(1, 11)] + [f"2023-11-{d:02d}" for d in range(1, 11)]
+    combined_strict = combined[combined["acq_date"].isin(strict_dates)].copy().reset_index(drop=True)
+    grid_strict = build_grid_summary(combined_strict)
+    disagree_strict = compute_disagreement(grid_strict)
+    pairs_strict = extract_paired_samples(disagree_strict)
+
+    # Scientific calibration engine is evaluated strictly on the strict Kharif cohort (1,312 train / 1,242 eval)
+    cal_results = run_all_calibrations(pairs_strict) if not pairs_strict.empty else {}
 
     # Reliability table — use best trained model
     best_model = None
@@ -85,6 +92,7 @@ def load_data() -> dict:
         "grid_summary": grid_summary,
         "disagree": disagree,
         "pairs": pairs,
+        "pairs_strict": pairs_strict,
         "cal_results": cal_results,
         "reliability": reliability,
         "using_real_data": using_real,

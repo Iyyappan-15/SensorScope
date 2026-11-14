@@ -129,7 +129,8 @@ We use **Standard Processing (SP)** data because it provides an internally consi
                     "📁 **Source Files Audit:** MODIS ingested across 23 non-empty CSV files "
                     "(8,294 Aqua records [97.9%], 178 Terra records [2.1%]); "
                     "VIIRS ingested across 24 CSV files (33,853 Suomi-NPP records [100.0%]). "
-                    "Terra records in exploratory files are excluded from the Aqua–VIIRS calibration pipeline."
+                    "Within the strict November 1–10 calibration window, MODIS records comprise 8,284 Aqua detections (97.9%) "
+                    "and 174 morning Terra detections (2.1%) naturally present in the standard NASA FIRMS daily area products."
                 )
         else:
             st.warning(
@@ -162,9 +163,8 @@ Native confidence scales for MODIS and VIIRS differ and are **not** combined int
 single probability score without a validated crosswalk.
 
 ### Step 2 — Spatial grid
-Detections are aggregated into a **0.1° × 0.1° analysis grid** (≈ 11 km × 11 km at the pilot latitude).
-This is an engineering choice to create a common spatial reference — it is not a scientifically
-prescribed universal resolution.
+Detections are aggregated into a **0.1° × 0.1° geographic analysis grid** (at ~30°N latitude across Punjab and Haryana, 0.1° corresponds to approximately 11.1 km north–south and 9.6 km east–west).
+This regular geographic binning is an engineering choice to establish a common spatial reference, rather than a projected equal-area grid.
 
 The grid size was selected to be:
 - Large enough to associate nearby MODIS (1 km) and VIIRS (375 m) detections
@@ -179,7 +179,7 @@ Day and night observations are kept separate throughout the analysis.
 ### Step 4 — Candidate association
 For the association analysis, records are compared using:
 - **Temporal window:** ±15 minutes (also tested: ±5 and ±30 minutes)
-- **Spatial tolerance:** 11 km (≈ 1 MODIS pixel diagonal + buffer)
+- **Spatial tolerance:** 11 km (an exploratory candidate-association threshold, not a physical MODIS pixel footprint)
 - **Many-to-many matching** — one MODIS pixel may associate with multiple VIIRS pixels
 
 **Important:** These are *candidate* associations, not confirmed fire identity.
@@ -268,12 +268,11 @@ A missing record may mean:
 **We do not interpret missing records as zero fire activity.**
 
 ### 2. Calibration scope
-Our calibration operates on **co-located, contemporaneous paired observations** only.
+Our calibration operates on **co-active observations within the same 0.1° grid cell and diurnal date grouping**, not necessarily contemporaneous observations.
 This is a subset of all observations:
-- Pairs require both sensors to report activity in the same grid cell on the same day
-- Sparse contemporaneous matches are expected (following Li et al. 2018 who found
-  only ~1 overlapping day per 8 days in some regions)
-- The calibration relationship learned from pairs may not hold for single-sensor observations
+- Pairs require both sensors to report activity in the same grid cell on the same diurnal pass
+- Empirical observation time differences vary continuously (median ~24–34 min, with only 15% observing within 5 min), capturing real-world fire growth and decay between satellite overpasses
+- The calibration relationship learned from co-active pairs cannot be assumed to hold for single-sensor observations
 
 ### 3. Detection limits (Sofiev & Kouznetsov 2026)
 Detection thresholds vary with:
@@ -285,10 +284,10 @@ Detection thresholds vary with:
 A complete cloud-aware correction would require Level-2 satellite products with
 observation flags and cloud masks — not available in FIRMS hotspot CSVs.
 
-### 4. Temporal coverage
-SP data for 2022–2024 may have a ~3-month lag for recent months.
-The pilot analysis should be treated as a methodological demonstration,
-not a complete historical record.
+### 4. Temporal coverage & latency
+Standard Processing (SP) latency is typically 2–3 months, although processing delays can sometimes extend up to 5 months.
+The pilot analysis focuses strictly on the 2022 and 2023 Kharif agricultural burning windows and should be treated as a methodological pilot demonstration,
+not a continuous multi-decadal historical inventory.
 
 ### 5. Spatial scale
 The 0.1° analysis grid is an engineering choice.

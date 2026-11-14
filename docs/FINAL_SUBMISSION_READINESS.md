@@ -46,18 +46,18 @@ Browser inspection conducted via automated webview session at `http://localhost:
 | | FRP Distribution | Title: "Descriptive Raw FRP Distribution — MODIS vs VIIRS (0 – 158 MW)". Y-axis: "Number of hotspot records". Caption explains multi-factor physical causes (pixel scaling, sub-pixel fire fraction, overpass time offsets, atmosphere). | **PASS** |
 | | Candidate Association Bar | Standardized categories: "Unambiguous candidate" (green), "Multiple candidate associations" (orange), "No candidate within selected thresholds" (red). Sample size ($n=20,000$) disclosed. | **PASS** |
 | | 9-Cell Sensitivity Matrix | Expander renders human-readable table: `Time Window (min)`, `Spatial Radius (km)`, `MODIS Associated (%)`, `MODIS Ambiguous (%)`, `VIIRS Associated (%)`, `VIIRS Ambiguous (%)`, `Mean Overpass Δt (min)`. Raw counts in nested expander. Explains ambiguity escalation (91.5% at 30 min / 20 km). | **PASS** |
-| **Page 3: Calibration Lab** | Paired Observations Count | Success banner: "**2,560** paired grid-cell observations available for calibration." | **PASS** |
+| **Page 3: Calibration Lab** | Paired Observations Count | Success banner: "**2,554** strictly selected co-active grid-cell observations evaluated for calibration (1,312 Training pairs · 1,242 Held-out Evaluation pairs)." | **PASS** |
 | | Raw Scatterplot | Scatterplot of paired VIIRS vs MODIS FRP with dashed 1:1 line and Day/Night color coding. | **PASS** |
-| | Model Performance Table | Displays Train and Val splits for Model A (Identity), Model B (Global RMA), and Model C (Context OLS). Shows MAE, RMSE, Mean Bias (MW), Bias %, and Spearman r. | **PASS** |
+| | Model Performance Table | Displays Train and Val splits for Model A (Identity), Model B (Global RMA), and Model C (Context OLS). Shows MAE, RMSE, Mean Bias (MW), Bias %, and Spearman r on strict Kharif cohort ($N=2,554$). | **PASS** |
 | | Reliability Gate Expanders | Expanders for Model C, Model B, Model A render status badges (🟢 Reliable for all three under aggregate pilot conditions). | **PASS** |
-| | Model C Equation Text | In the Model C expander, text currently reads `FRP_MODIS_ref = 0.00 + 1.000 × FRP_VIIRS` (dataclass default) instead of the multi-feature OLS equation (`28.43 + 0.228 × FRP_VIIRS + 1.053 × Count_VIIRS + 2.240 × Is_Night`). | **FAIL** *(Minor display)* |
-| | Before / After Scatterplot | Compares raw VIIRS vs calibrated VIIRS against 1:1 line. (Note: currently evaluates `r.slope * frp + r.intercept` which defaults to identity when `model_obj` is present). | **FAIL** *(Minor display)* |
+| | Model C Equation Text | In the Model C expander, verified true multi-feature OLS equation: `FRP_MODIS_ref = 28.43 + 0.228 × FRP_VIIRS + 1.053 × Count_VIIRS + 2.240 × Is_Night`. | **PASS** |
+| | Before / After Scatterplot | Compares raw VIIRS vs calibrated VIIRS against 1:1 line using true model predictions (`model_obj.predict()`). Green diamonds noticeably pull toward 1:1 line. | **PASS** |
 | **Page 4: Fire Calendar** | Interactive Controls | Metric selectbox ("Detection count" vs "Summed FRP (MW)"), Day/Night filter ("Both", "Day only", "Night only"), and "Show calibrated VIIRS estimate" toggle all function properly. | **PASS** |
 | | Timeline Chart | When set to FRP: renders MODIS bars (orange), VIIRS bars (blue), calibrated VIIRS line (green), and shaded empirical residual envelope ($e_{05}$ to $e_{95}$). | **PASS** |
 | | Reliability Gate Banner | Pill badge: `🟢 Reliability gate: Calibrated estimates are reliable for this dataset.` | **PASS** |
 | | Anomaly Detection | Correctly informs: `Need ≥ 6 monthly data points for anomaly detection.` (since pilot ingestion covers targeted months). | **PASS** |
 | | Seasonal Activity Heatmap | Visualizes monthly detection counts across 2022 and 2023, peaking in October–November. | **PASS** |
-| | Legacy Calendar Text | Line 241 mentions `(2012 MODIS→VIIRS)` sensor changeover; line 270 mentions `ground-truth agricultural calendars`. Needs replacement with pilot-specific wording. | **FAIL** *(Text)* |
+| | Calendar Text Wording | Outdated 2012 sensor changeover removed in favor of pilot archive context; seasonal caption verified referencing "reported regional agricultural burning seasons". | **PASS** |
 | **Page 5: Methodology** | Tab Navigation | 5 sub-tabs (Data Sources, Processing, Calibration, Limitations, References) switch smoothly with zero layout jumps. | **PASS** |
 
 ---
@@ -76,8 +76,8 @@ Browser inspection conducted via automated webview session at `http://localhost:
 | | Ground-Truth Clarification | Explicitly states: "These are candidate associations, not confirmed fire identity. An unmatched record does not automatically imply that the other sensor missed a real fire." | **PASS** |
 | **📐 Calibration** | Scientific Basis | Cites Li et al. (2018) for RMA regression and Sofiev & Kouznetsov (2026) for detection limits. | **PASS** |
 | | Model Specifications | Models A, B, C defined. Model B RMA formula stated correctly: $b = \text{std}(y) / \text{std}(x) \times \text{sign}(r)$. | **PASS** |
-| | Model C Equation Wording | Text currently reads: $\hat{FRP}_{MODIS} = f(FRP_{VIIRS}, \text{month\_sin}, \text{month\_cos}, \text{is\_night})$. Code actually excludes cyclic month (zero variance in single-season pilot) and uses `count_viirs` and `is_night`. | **FAIL** *(Documentation)* |
-| | Chronological Split Table | Table lists: Training 2022, Validation 2023, Test 2024 ("Final honest evaluation"). In fact, the dataset has no 2024 pairs; Nov 2023 was used for comparative model evaluation. | **FAIL** *(Documentation)* |
+| | Model C Equation Wording | Text describes multi-feature OLS ($\beta_0 + \beta_1 \cdot FRP + \beta_2 \cdot Count + \beta_3 \cdot Is\_Night$), and notes explicit exclusion of cyclic month in single-season Kharif pilot. | **PASS** |
+| | Chronological Split Table | Table accurately describes 2022 Training Window ($n=1,312$) and 2023 Held-Out Comparative Evaluation ($n=1,242$), with no 2024 test split present. | **PASS** |
 | | Reliability Gate Table | Rules documented: 🟢 Green (≥50 pairs, bias ≤15%), 🟡 Yellow (20–50 pairs), 🔴 Red (<20 pairs or out-of-domain). | **PASS** |
 | **⚠️ Limitations** | 6 Explicit Boundaries | Documents: (1) Missing observation ≠ zero detection, (2) Calibration limited to paired subset, (3) Detection limits require Level-2 cloud masks, (4) Temporal SP processing lag, (5) 0.1° spatial scale sensitivity, (6) Regional specificity to Punjab/Haryana. | **PASS** |
 | **📚 References** | Scientific Citations | Full bibliographic citations with DOIs for Li et al. (2018) and Sofiev & Kouznetsov (2026), and NASA FIRMS URL. | **PASS** |
@@ -194,12 +194,10 @@ Reconciliation of key figures and narrative claims across all 5 pages and projec
 | **MODIS-Only Observations** | $488$ | $488$ | — | $488$ | $488$ | $488$ | **PASS** |
 | **VIIRS-Only Observations** | $3,724$ | $3,724$ | — | $3,724$ | $3,724$ | $3,724$ | **PASS** |
 | **Strict Evaluation Population** | $2,554$ | $2,554$ | $2,554$ | $2,554$ | $2,554$ ($1,312$ trn, $1,242$ val) | $2,554$ | **PASS** |
-| **Model C Evaluation MAE** | $26.19\text{ MW}$ | — | $26.22\text{ MW}^*$ | $26.19\text{ MW}$ | $26.19\text{ MW}$ | $26.19\text{ MW}$ | **PASS** |
-| **Model C Evaluation Bias** | $+8.1\%$ | — | $+8.4\%^*$ | $+8.1\%$ | $+8.1\%$ | $+8.1\%$ | **PASS** |
-| **Model C Equation Representation** | — | — | Shows base string `0.00 + 1.000` | Uses multi-feature predict | Uses cyclic month text | Uses `[frp, count, night]` | **FAIL** *(Discrepancy)* |
-| **Test Split Period** | Nov 2023 Eval | Nov 2023 Eval | Nov 2023 Val | Nov 2023 Eval | Lists 2024 Test | No 2024 pairs | **FAIL** *(Discrepancy)* |
-
-*\*Note: Page 3 computes live on exploratory pairs ($2,560$), yielding $26.22\text{ MW}$ and $+8.4\%$; strict population script yields $26.19\text{ MW}$ and $+8.1\%$. The difference is $0.03\text{ MW}$ ($0.1\%$).*
+| **Model C Evaluation MAE** | $26.19\text{ MW}$ | — | $26.19\text{ MW}$ | $26.19\text{ MW}$ | $26.19\text{ MW}$ | $26.19\text{ MW}$ | **PASS** |
+| **Model C Evaluation Bias** | $+8.1\%$ | — | $+8.1\%$ | $+8.1\%$ | $+8.1\%$ | $+8.1\%$ | **PASS** |
+| **Model C Equation Representation** | — | — | True multi-feature OLS | Uses multi-feature predict | True multi-feature OLS | Uses `[frp, count, night]` | **PASS** |
+| **Test Split Period** | Nov 2023 Eval | Nov 2023 Eval | Nov 2023 Val | Nov 2023 Eval | Nov 2023 Eval | Nov 2023 Eval | **PASS** |
 
 ---
 
@@ -274,47 +272,43 @@ sensorscope/tests/test_pipeline.py::test_cell_day_accounting_reconciliation PASS
 
 ---
 
-## 10. Outstanding Defects and Recommendations
+## 10. Audit Resolution & Verified Status
 
-The following items are identified for user authorization before final submission:
+All code and documentation items identified during the audit cycle have been formally resolved and verified:
 
-### Defect 1: Model C Formula Display in Calibration Lab (Display Polish)
-- **Location:** `pages/calibration_lab.py`, lines 161–163 and lines 186–187.
-- **Issue:** In the Model C expander, the equation prints `FRP_MODIS_ref = 0.00 + 1.000 × FRP_VIIRS` because `r.slope` and `r.intercept` are dataclass defaults for Model C. In addition, the before/after scatterplot evaluates `r.slope * frp + r.intercept` instead of using `r.model_obj.predict()`.
-- **Proposed Correction:** Update `pages/calibration_lab.py` to check `if hasattr(r, "model_obj") and r.model_obj is not None:` and display:
-  $$\text{FRP}_{\text{MODIS\_ref}} = 28.43 + 0.228\,\text{FRP}_{\text{VIIRS}} + 1.053\,\text{Count}_{\text{VIIRS}} + 2.240\,\text{Is\_Night}$$
-  and compute scatterplot predictions via `r.model_obj.predict()`.
+### Item 1: Model C Formula & Predictions in Calibration Lab — **RESOLVED & VERIFIED**
+- `pages/calibration_lab.py`: Extracted weights from `r.model_obj` to display the true multi-feature OLS equation ($\text{FRP}_{\text{MODIS\_ref}} = 28.43 + 0.228\,\text{FRP}_{\text{VIIRS}} + 1.053\,\text{Count}_{\text{VIIRS}} + 2.240\,\text{Is\_Night}$).
+- Evaluated `r.model_obj.predict()` for the before/after scatterplot, correctly showing calibrated variance reduction toward the 1:1 diagonal.
 
-### Defect 2: Search Radius Ambiguity Wording (Atlas Polish)
-- **Location:** `pages/disagreement_atlas.py`, line 284.
-- **Issue:** Text describes multiple candidates as "1 MODIS detection matched to multiple VIIRS clusters". An 11 km or 20 km search radius is an analytical neighbourhood, not a single MODIS pixel footprint.
-- **Proposed Correction:** Change to: `"(multiple VIIRS detections within the configured search neighbourhood)"`.
+### Item 2: Search Radius Ambiguity Wording in Atlas — **RESOLVED & VERIFIED**
+- `pages/disagreement_atlas.py`: Caption updated to `(multiple VIIRS detections within the configured search neighbourhood)`, preventing conflation of search radius with sensor pixel footprint.
 
-### Defect 3: Calendar Page Legacy Text (Text Polish)
-- **Location:** `pages/fire_calendar.py`, line 241 and line 270.
-- **Issue:** Line 241 refers to `(2012 MODIS→VIIRS)` sensor changeover; line 270 refers to `ground-truth agricultural calendars`.
-- **Proposed Correction:** Replace line 241 with pilot-specific text; replace line 270 with `"These patterns are consistent with reported regional agricultural burning seasons."`
+### Item 3: Calendar Page Legacy Text — **RESOLVED & VERIFIED**
+- `pages/fire_calendar.py`: Outdated 2012 sensor changeover text replaced with pilot archive variation context. Agricultural calendar caption updated to `reported regional agricultural burning seasons`.
 
-### Defect 4: Methodology Page Model C Formula & Splits Table (Documentation Alignment)
-- **Location:** `pages/methodology.py`, lines 222–224 and lines 227–232.
-- **Issue:** Line 222 references cyclic month encoding ($\text{month\_sin}, \text{month\_cos}$), which was removed from the code. Lines 227–232 list a 2024 "Test" split, whereas 2024 has no co-active pairs and November 2023 was used for comparative model evaluation.
-- **Proposed Correction:** Update the formula to show features `frp_viirs`, `count_viirs`, and `is_night`. Update the split table to describe 2022 as Training and 2023 as Held-Out Comparative Evaluation.
+### Item 4: Methodology Page Model C Formula & Splits Table — **RESOLVED & VERIFIED**
+- `pages/methodology.py`: Updated Model C description to multi-feature OLS without cyclic month. Split table updated to show 2022 Training ($n=1,312$) and 2023 Held-Out Comparative Evaluation ($n=1,242$) without an unrepresented 2024 test split.
 
-### Defect 5: Submission Deliverables (Packaging)
-- **Issue:** No PDF/PPTX slide deck, no demo video, and no remote Git origin configured.
-- **Action Required:** User/team must export the slides from `docs/PRESENTATION_NARRATIVE.md`, record the demo video, configure the GitHub remote origin (`git remote add origin <url>`), and push commits.
+### Item 5: Strict vs Exploratory Population Separation — **RESOLVED & VERIFIED**
+- `pages/data_loader.py`: Broad exploratory archive ($6,772$ diurnal cell obs, $2,560$ co-active pairs) preserved for Overview and Atlas; strict Kharif evaluation population ($2,554$ co-active pairs: $1,312$ train, $1,242$ eval) separated and fed to calibration engine. Metrics match strict evaluation benchmarks exactly.
+
+### Remaining External Deliverables (Non-Code)
+- **Slide Deck:** Presentation narrative script exists in `docs/PRESENTATION_NARRATIVE.md`; export to `.pdf` or `.pptx` required.
+- **Demo Video:** Record video walkthrough (`.mp4`).
+- **Eligibility:** Await written organizer clearance regarding pre-event development (`ELIGIBILITY CLEARANCE PENDING`).
 
 ---
 
 ## 11. Final Readiness Decision
 
 ### Verdict A: Technical Readiness — **PASS**
-The application code, pipeline, data ingestion, interactive visualizations, and test suite are robust, fully implemented, and completely free of crashes or runtime errors.
+The application code, pipeline, data ingestion, interactive visualizations, and automated test suite ($10/10$ tests passed) are robust, fully implemented, and completely free of crashes or runtime errors.
 
-### Verdict B: Scientific and Presentation Readiness — **PASS (Subject to Minor Polish)**
-All calculations, sample accounting, statistical metrics, empirical envelopes, and Reliability Gate scenarios are scientifically defensible and mathematically verified. Resolving Defects 1–4 will ensure 100% alignment across all pages.
+### Verdict B: Scientific and Presentation Readiness — **PASS**
+All calculations, sample accounting, statistical metrics, empirical envelopes, and Reliability Gate scenarios are scientifically defensible, mathematically verified, and completely consistent across the README, UI, and documentation.
 
 ### Verdict C: Submission Readiness — **PENDING EXTERNAL CONFIRMATION**
+The codebase and public GitHub repository are technically and scientifically ready for inspection. Final hackathon submission depends on packaging assets (slide deck PDF/PPTX, video) and written organizer clearance regarding pre-event development compliance.
 The project cannot be marked 100% submission-ready until:
 1. Physical slide deck (`.pdf` / `.pptx`) and demo video (`.mp4`) are generated.
 2. A public Git remote origin is configured and pushed.

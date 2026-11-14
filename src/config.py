@@ -42,12 +42,12 @@ DATA_END_YEAR: int = int(os.getenv("DATA_END_YEAR", "2024"))
 FIRMS_MAX_DAYS_PER_REQUEST: int = 10
 
 # ── Spatial grid ───────────────────────────────────────────────────────────────
-GRID_SIZE_KM: float = 10.0   # Analysis grid cell size in km
+GRID_SIZE_KM: float = 10.0   # Nominal ~10 km scale; actual analysis bins use 0.1° geographic grid (~11.1 km N-S x 9.6 km E-W)
 GRID_CRS: str = "EPSG:32643"  # UTM Zone 43N — covers Punjab/Haryana well
 
 # ── Sensor association thresholds ──────────────────────────────────────────────
 ASSOC_TIME_WINDOW_MINUTES: int = 15     # Candidate temporal window
-ASSOC_SPATIAL_TOLERANCE_KM: float = 11.0  # ~1 MODIS pixel diagonal + buffer
+ASSOC_SPATIAL_TOLERANCE_KM: float = 11.0  # Exploratory candidate-association search radius (~0.1° scale)
 
 # ── Calibration ────────────────────────────────────────────────────────────────
 # Minimum paired samples required to attempt calibration

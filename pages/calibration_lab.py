@@ -44,7 +44,7 @@ def render() -> None:
     data = load_data()
     data_source_banner(data["using_real_data"])
 
-    pairs = data["pairs"]
+    pairs = data.get("pairs_strict", data["pairs"])
     cal_results = data["cal_results"]
 
     if pairs.empty:
@@ -54,7 +54,15 @@ def render() -> None:
         )
         return
 
-    st.success(f"**{len(pairs):,}** paired grid-cell observations available for calibration.")
+    st.success(
+        f"**{len(pairs):,}** strictly selected co-active grid-cell observations evaluated for calibration "
+        f"(1,312 Training pairs [Nov 1–10, 2022] · 1,242 Held-out Evaluation pairs [Nov 1–10, 2023])."
+    )
+    st.caption(
+        "ℹ️ **Population Identification:** Displayed calibration models are evaluated strictly on the 2,554 co-active cell-day "
+        "observations from the primary November Kharif burning peak. The broader exploratory archive contains 2,560 co-active observations "
+        "(including exploratory API test probe dates)."
+    )
 
     # ── Scatter: raw relationship ──────────────────────────────────────────────
     st.subheader("🔍 Raw MODIS vs VIIRS FRP relationship")
@@ -128,9 +136,10 @@ A calibration model learns the systematic relationship between these measurement
             hide_index=True,
         )
         st.caption(
-            "**Train** = in-sample fit · "
-            "**Val** = out-of-sample validation · "
-            "**Test** = held-out test period (most honest evaluation)"
+            "• **Train:** November 2022 model fitting ($n=1,312$ co-active pairs).<br>"
+            "• **Val:** November 2023 held-out comparative evaluation ($n=1,242$ co-active pairs).<br>"
+            "• *Note:* No independent final test period is available in this pilot; November 2023 served as the comparative evaluation period.",
+            unsafe_allow_html=True,
         )
 
     st.divider()
