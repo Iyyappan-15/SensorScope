@@ -346,6 +346,6 @@ def render() -> None:
                 st.caption(
                     "**Key Finding on Ambiguity Escalation:** At strict thresholds (5 min, 5 km), only 6.6% of MODIS records find a candidate match. "
                     "At liberal thresholds (30 min, 20 km), 51.2% of MODIS records find a candidate match, but **91.5% of those candidate associations (475/519) are ambiguous** "
-                    "(1 MODIS detection matched to multiple VIIRS clusters). Empirical mean observed time offsets range from 1.5 to 13.4 minutes. "
+                    "(multiple VIIRS detections within the configured search neighbourhood). Empirical mean observed time offsets range from 1.5 to 13.4 minutes. "
                     "This explosive escalation in ambiguity illustrates why point-to-point 1:1 matching is scientifically inappropriate for disparate-resolution sensors."
                 )

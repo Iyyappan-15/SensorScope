@@ -238,8 +238,8 @@ def render() -> None:
 
         st.caption(
             "⚠️ Z-scores are computed within this dataset only. "
-            "Apparent anomalies may reflect sensor changeover (2012 MODIS→VIIRS) "
-            "rather than real changes in burning activity."
+            "Apparent anomalies reflect variations within the 2022–2023 pilot archive "
+            "rather than long-term multi-decadal climatology."
         )
     else:
         st.info("Need ≥ 6 monthly data points for anomaly detection.")
@@ -265,7 +265,7 @@ def render() -> None:
         )
         st.plotly_chart(fig3, use_container_width=True)
         st.caption(
-            "Oct–Nov shows the Kharif stubble burning peak. "
-            "Apr–May shows the Rabi stubble burning peak. "
-            "These patterns are consistent with ground-truth agricultural calendars."
+            "Oct–Nov shows the post-monsoon Kharif stubble burning peak. "
+            "Apr–May shows the pre-monsoon Rabi stubble burning peak. "
+            "These patterns are consistent with reported regional agricultural burning seasons."
         )

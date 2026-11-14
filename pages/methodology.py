@@ -218,17 +218,18 @@ $$\\hat{FRP}_{MODIS} = a + b \\cdot FRP_{VIIRS}$$
 RMA slope: $b = \\text{std}(FRP_{MODIS}) / \\text{std}(FRP_{VIIRS}) \\times \\text{sign}(r)$
 
 **Model C — Context-aware calibration**
-OLS regression with additional features:
-$$\\hat{FRP}_{MODIS} = f(FRP_{VIIRS},\\ \\text{month\\_sin},\\ \\text{month\\_cos},\\ \\text{is\\_night})$$
+OLS multi-feature linear regression utilizing strictly predictor-side observations:
+$$\\hat{FRP}_{MODIS} = \\beta_0 + \\beta_1 \\cdot FRP_{VIIRS} + \\beta_2 \\cdot Count_{VIIRS} + \\beta_3 \\cdot Is\\_Night$$
 
-Cyclic month encoding preserves seasonal continuity.
+Features include summed VIIRS FRP (MW), cluster detection count, and a binary day/night flag ($1$ if Night, $0$ if Day). Zero-variance seasonal features (such as cyclic month in a single-season Kharif pilot) are excluded to maintain statistical validity.
 
-### Chronological split (no data leakage)
-| Split | Period | Purpose |
-|-------|--------|---------|
-| Training | 2022 | Model fitting |
-| Validation | 2023 | Hyperparameter selection & reliability gate |
-| Test | 2024 | Final honest evaluation |
+### Split Design & Evaluation Strategy
+| Split / Cohort | Window | Co-Active Pairs | Purpose & Evaluation Role |
+|---|---|:---:|---|
+| **Training Split** | Nov 1–10, 2022 | **1,312** | Model parameter estimation & 5-fold date-grouped cross-validation |
+| **Held-Out Evaluation Split** | Nov 1–10, 2023 | **1,242** | Held-out comparative model evaluation & Reliability Gate threshold assessment |
+
+*Methodological Note:* November 2023 was used for comparative model evaluation across Models A, B, and C; cross-validation across acquisition dates is performed via GroupKFold (unweighted mean fold MAE = 32.01 MW). The pilot archive focuses on the 2022 and 2023 Kharif agricultural burning windows.
 
 ### Reliability gate
 The reliability gate operates independently of model training.

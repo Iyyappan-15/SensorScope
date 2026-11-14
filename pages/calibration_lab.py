@@ -159,7 +159,17 @@ A calibration model learns the systematic relationship between these measurement
             st.markdown(f"**Trained:** {'Yes' if r.trained else 'No'}")
 
             if r.trained:
-                st.markdown(f"**Equation:** `FRP_MODIS_ref = {r.intercept:.2f} + {r.slope:.3f} × FRP_VIIRS`")
+                if hasattr(r, "model_obj") and r.model_obj is not None:
+                    coefs = r.model_obj.coef_
+                    inter = r.model_obj.intercept_
+                    st.markdown(
+                        f"**Equation:** `FRP_MODIS_ref = {inter:.2f} + {coefs[0]:.3f} × FRP_VIIRS + "
+                        f"{coefs[1]:.3f} × Count_VIIRS + {coefs[2]:.3f} × Is_Night`"
+                    )
+                elif key == "identity":
+                    st.markdown("**Equation:** `FRP_MODIS_ref = FRP_VIIRS` (Identity / Baseline)")
+                else:
+                    st.markdown(f"**Equation:** `FRP_MODIS_ref = {r.intercept:.2f} + {r.slope:.3f} × FRP_VIIRS`")
 
             if status == "green":
                 st.success("✅ Calibrated estimates shown in the Fire Activity Calendar.")
@@ -184,7 +194,14 @@ A calibration model learns the systematic relationship between these measurement
     if best_key:
         r = cal_results[best_key]
         sample = pairs.sample(min(1500, len(pairs)), random_state=2)
-        predicted = r.slope * sample["frp_viirs"].values + r.intercept
+        if hasattr(r, "model_obj") and r.model_obj is not None:
+            frp = sample["frp_viirs"].values.reshape(-1, 1)
+            count = sample["count_viirs"].values.reshape(-1, 1) if "count_viirs" in sample.columns else np.ones_like(frp)
+            is_night = (sample["daynight"].values == "N").astype(float).reshape(-1, 1)
+            X_sample = np.hstack([frp, count, is_night])
+            predicted = np.maximum(0.0, r.model_obj.predict(X_sample))
+        else:
+            predicted = np.maximum(0.0, r.slope * sample["frp_viirs"].values + r.intercept)
 
         fig2 = go.Figure()
         fig2.add_trace(go.Scatter(
@@ -197,7 +214,7 @@ A calibration model learns the systematic relationship between these measurement
             mode="markers", name="Calibrated VIIRS",
             marker=dict(color="#4caf50", opacity=0.5, size=4, symbol="diamond"),
         ))
-        max_v = min(float(sample["frp_modis"].max()), 500)
+        max_v = min(float(sample[["frp_modis", "frp_viirs"]].max().max()), 500)
         fig2.add_trace(go.Scatter(
             x=[0, max_v], y=[0, max_v],
             mode="lines", name="1:1",
