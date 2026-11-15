@@ -269,7 +269,7 @@ def render() -> None:
                     lat=lats,
                     lon=lons,
                     mode="lines",
-                    line=dict(color="#fbc02d", width=2.5, dash="dash"),
+                    line=dict(color="#fbc02d", width=2.5),
                     name="0.1° Grid AOI Bounding Box",
                     hoverinfo="text",
                     text="Punjab & Haryana Study AOI Boundary [29.5°–32.5°N, 73.8°–77.5°E]",
