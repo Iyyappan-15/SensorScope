@@ -12,6 +12,7 @@ sys.path.insert(0, str(ROOT / "src"))
 
 from pages.data_loader import load_data, data_source_banner
 from analysis.disagreement import disagreement_by_daynight, disagreement_by_season
+from config import REGIONAL_KEY_CITIES
 
 
 def render() -> None:
@@ -57,7 +58,7 @@ def render() -> None:
     with left:
         st.subheader("🗺️ Spatial reporting asymmetry (VIIRS − MODIS)")
         
-        c_map1, c_map2 = st.columns([1.3, 1])
+        c_map1, c_map2, c_map3 = st.columns([1.1, 1.1, 0.8])
         with c_map1:
             basemap_choice = st.selectbox(
                 "Map View / Basemap",
@@ -68,11 +69,19 @@ def render() -> None:
             )
         with c_map2:
             min_days = st.slider(
-                "Min Diurnal Observation Passes per Cell",
+                "Min Diurnal Passes per Cell",
                 min_value=1,
                 max_value=15,
                 value=1,
                 help="Filter to cells observed across at least N diurnal passes to suppress transient single-pass noise.",
+            )
+        with c_map3:
+            st.markdown("<div style='height: 28px;'></div>", unsafe_allow_html=True)
+            show_city_labels = st.checkbox(
+                "Show City Labels",
+                value=True,
+                help="Display major regional city names (Ludhiana, Amritsar, Bathinda, etc.) for geographic orientation.",
+                key="atlas_cities",
             )
 
         map_data = disagree.groupby(["grid_lat", "grid_lon"]).agg(
@@ -89,10 +98,15 @@ def render() -> None:
             "sourcetype": "raster",
             "source": ["https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"],
         }
+        esri_labels_layer = {
+            "below": "traces",
+            "sourcetype": "raster",
+            "source": ["https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}"],
+        }
 
         if "Satellite" in basemap_choice:
             map_style = "white-bg"
-            map_layers = [esri_layer]
+            map_layers = [esri_layer, esri_labels_layer]
         elif "OSM" in basemap_choice:
             map_style = "open-street-map"
             map_layers = []
@@ -133,6 +147,24 @@ def render() -> None:
             ),
             marker=dict(opacity=0.8),
         )
+
+        # Optional Major City Landmark Labels
+        if show_city_labels:
+            city_trace_type = go.Scattermap if hasattr(px, "scatter_map") else go.Scattermapbox
+            fig.add_trace(
+                city_trace_type(
+                    lat=[c["lat"] for c in REGIONAL_KEY_CITIES],
+                    lon=[c["lon"] for c in REGIONAL_KEY_CITIES],
+                    mode="markers+text",
+                    text=[c["name"] for c in REGIONAL_KEY_CITIES],
+                    textposition="top center",
+                    textfont=dict(size=11, color="#FFFFFF", family="Arial Black"),
+                    marker=dict(size=8, color="#FFD700", symbol="circle"),
+                    name="Major Cities",
+                    hovertext=[f"<b>📍 {c['name']}</b> ({c['state']})<br>Coordinates: {c['lat']:.4f}°N, {c['lon']:.4f}°E" for c in REGIONAL_KEY_CITIES],
+                    hoverinfo="text",
+                )
+            )
 
         layout_dict = dict(
             center=target_center,

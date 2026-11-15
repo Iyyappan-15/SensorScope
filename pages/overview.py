@@ -13,6 +13,7 @@ ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(ROOT / "src"))
 
 from pages.data_loader import load_data, data_source_banner
+from config import REGIONAL_KEY_CITIES
 
 
 def render() -> None:
@@ -110,6 +111,11 @@ def render() -> None:
                 value=False,
                 help="Render a continuous thermal kernel density surface instead of discrete point centroids.",
             )
+            show_city_labels = st.checkbox(
+                "Show City Labels",
+                value=True,
+                help="Display major regional city names (Ludhiana, Amritsar, Bathinda, etc.) for geographic orientation.",
+            )
 
         # Apply filtering
         df_map = combined.copy()
@@ -183,10 +189,15 @@ def render() -> None:
             "sourcetype": "raster",
             "source": ["https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"],
         }
+        esri_labels_layer = {
+            "below": "traces",
+            "sourcetype": "raster",
+            "source": ["https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}"],
+        }
 
         if "Satellite" in basemap_choice:
             map_style = "white-bg"
-            map_layers = [esri_layer]
+            map_layers = [esri_layer, esri_labels_layer]
         elif "OSM" in basemap_choice:
             map_style = "open-street-map"
             map_layers = []
@@ -262,6 +273,24 @@ def render() -> None:
                     name="0.1° Grid AOI Bounding Box",
                     hoverinfo="text",
                     text="Punjab & Haryana Study AOI Boundary [29.5°–32.5°N, 73.8°–77.5°E]",
+                )
+            )
+
+        # Optional Major City Landmark Labels
+        if show_city_labels:
+            city_trace_type = go.Scattermap if hasattr(px, "scatter_map") else go.Scattermapbox
+            fig_map.add_trace(
+                city_trace_type(
+                    lat=[c["lat"] for c in REGIONAL_KEY_CITIES],
+                    lon=[c["lon"] for c in REGIONAL_KEY_CITIES],
+                    mode="markers+text",
+                    text=[c["name"] for c in REGIONAL_KEY_CITIES],
+                    textposition="top center",
+                    textfont=dict(size=11, color="#FFFFFF", family="Arial Black"),
+                    marker=dict(size=8, color="#FFD700", symbol="circle"),
+                    name="Major Cities",
+                    hovertext=[f"<b>📍 {c['name']}</b> ({c['state']})<br>Coordinates: {c['lat']:.4f}°N, {c['lon']:.4f}°E" for c in REGIONAL_KEY_CITIES],
+                    hoverinfo="text",
                 )
             )
 

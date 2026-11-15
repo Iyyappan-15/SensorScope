@@ -15,6 +15,24 @@ FIRMS_MAP_KEY: str = os.getenv("FIRMS_MAP_KEY", "")
 FIRMS_BASE_URL: str = "https://firms.modaps.eosdis.nasa.gov/api/area/csv"
 FIRMS_AVAILABILITY_URL: str = "https://firms.modaps.eosdis.nasa.gov/api/data_availability.json"
 
+# ── Regional Key Cities (Punjab & Haryana reference landmarks) ─────────────────
+REGIONAL_KEY_CITIES: list[dict[str, any]] = [
+    {"name": "Ludhiana", "lat": 30.9010, "lon": 75.8573, "state": "Punjab"},
+    {"name": "Amritsar", "lat": 31.6340, "lon": 74.8723, "state": "Punjab"},
+    {"name": "Jalandhar", "lat": 31.3260, "lon": 75.5762, "state": "Punjab"},
+    {"name": "Patiala", "lat": 30.3398, "lon": 76.3869, "state": "Punjab"},
+    {"name": "Bathinda", "lat": 30.2110, "lon": 74.9455, "state": "Punjab"},
+    {"name": "Sangrur", "lat": 30.2458, "lon": 75.8420, "state": "Punjab"},
+    {"name": "Firozpur", "lat": 30.9237, "lon": 74.6111, "state": "Punjab"},
+    {"name": "Moga", "lat": 30.8165, "lon": 75.1717, "state": "Punjab"},
+    {"name": "Chandigarh", "lat": 30.7333, "lon": 76.7794, "state": "UT"},
+    {"name": "Ambala", "lat": 30.3782, "lon": 76.7767, "state": "Haryana"},
+    {"name": "Karnal", "lat": 29.6857, "lon": 76.9905, "state": "Haryana"},
+    {"name": "Hisar", "lat": 29.1492, "lon": 75.7217, "state": "Haryana"},
+    {"name": "Sirsa", "lat": 29.5349, "lon": 75.0296, "state": "Haryana"},
+    {"name": "Panipat", "lat": 29.3909, "lon": 76.9635, "state": "Haryana"},
+]
+
 # ── Products ───────────────────────────────────────────────────────────────────
 MODIS_PRODUCT: str = "MODIS_SP"       # Collection 6.1 Standard Processing
 VIIRS_PRODUCT: str = "VIIRS_SNPP_SP"  # Suomi-NPP Collection 2 Standard Processing
